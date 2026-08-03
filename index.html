@@ -103,7 +103,7 @@
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">หมวดหมู่ / รายละเอียด</label>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">หมวดหมู่ / รายรายละเอียด</label>
           <input type="text" id="editCategory" class="w-full p-3 border border-pink-100 rounded-xl focus:outline-none focus:border-pink-400">
         </div>
 
@@ -130,7 +130,23 @@
     let currentType = "รายจ่าย";
     let myChart = null;
     let rawAllItems = [];
-    let currentUserId = "";
+    let targetSheetName = "";
+
+    // ฟังก์ชันคลีนชื่ออักษรพิเศษ/ช่องว่าง ให้ตรงกับ Worker
+    function cleanDisplayName(name) {
+      if (!name) return "User";
+      let cleaned = name.normalize("NFKD");
+      cleaned = cleaned.replace(/[^\u0E00-\u0E7F\w\s]/gi, "").trim();
+      return cleaned || "User";
+    }
+
+    // สร้างชื่อชีตตามเดือนปัจจุบัน: ชื่อไลน์_MM-YYYY
+    function getMonthYearSheetName(cleanName) {
+      const now = new Date();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      return `${cleanName}_${mm}-${yyyy}`;
+    }
 
     async function main() {
       try {
@@ -141,30 +157,31 @@
           return;
         } else {
           const profile = await liff.getProfile();
-          currentUserId = profile.displayName ? profile.displayName.replace(/[:\*?\[\]\/\\]/g, "_") : profile.userId;
+          const cleanName = cleanDisplayName(profile.displayName);
+          targetSheetName = getMonthYearSheetName(cleanName);
+
           document.getElementById("userName").innerText = profile.displayName || "ผู้ใช้งานน้องจด";
           if (profile.pictureUrl) {
             document.getElementById("userPicture").src = profile.pictureUrl;
           }
-          // ดึงข้อมูลเมื่อได้ userId เรียบร้อยแล้วเท่านั้น
           await fetchData();
         }
       } catch (err) {
         console.error("LIFF Init Failed:", err);
         document.getElementById("userName").innerText = "น้องจด (ไม่ได้ต่อ LINE)";
-        // หากทดสอบใน Web Browser ทั่วไป ให้โหลดข้อมูลแบบไม่มี userId
+        targetSheetName = getMonthYearSheetName("Peerapat");
         await fetchData();
       }
     }
 
     async function fetchData() {
       try {
-        const fetchUrl = currentUserId ? `${WORKER_URL}?userId=${encodeURIComponent(currentUserId)}` : WORKER_URL;
+        // ส่ง parameter sheet เพื่อไปเปิดชีตเดือนปัจจุบันแบบตรงเป๊ะ
+        const fetchUrl = targetSheetName ? `${WORKER_URL}?sheet=${encodeURIComponent(targetSheetName)}` : WORKER_URL;
         const res = await fetch(fetchUrl);
         const data = await res.json();
         
-        // รองรับทั้ง Array ตรงๆ หรือ Object ที่มี property items
-        rawAllItems = Array.isArray(data) ? data : (data.items || []);
+        rawAllItems = data.items || [];
         applyFilter();
       } catch (e) {
         console.error("Fetch Data Error:", e);
@@ -244,7 +261,7 @@
 
       filteredItems.forEach(item => {
         const amt = parseAmount(item.amount);
-        if (item.type === "รายรับ") {
+        if (item.type.includes("รายรับ")) {
           totalIncome += amt;
         } else {
           totalExpense += amt;
@@ -303,7 +320,7 @@
       }
 
       listEl.innerHTML = items.map(item => {
-        const isIncome = item.type === "รายรับ";
+        const isIncome = item.type.includes("รายรับ");
         const colorClass = isIncome ? "text-sky-600 bg-sky-50" : "text-pink-600 bg-pink-50";
         const amountSign = isIncome ? "+" : "-";
         const numAmount = parseAmount(item.amount);
@@ -396,7 +413,7 @@
       const btnExpense = document.getElementById("btnTypeExpense");
       const btnIncome = document.getElementById("btnTypeIncome");
 
-      if (type === "รายจ่าย") {
+      if (type.includes("รายจ่าย")) {
         btnExpense.className = "py-2.5 rounded-xl font-medium border text-center border-pink-500 bg-pink-50 text-pink-600";
         btnIncome.className = "py-2.5 rounded-xl font-medium border text-center border-gray-200 text-gray-600";
       } else {
@@ -414,9 +431,13 @@
       let dateStr = "";
       if (rawDate) {
         const d = new Date(rawDate);
-        const datePart = new Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'short' }).format(d);
-        const timePart = new Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', timeStyle: 'medium' }).format(d);
-        dateStr = `${datePart} ${timePart}`;
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
+        dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
       }
 
       try {
@@ -430,7 +451,7 @@
             amount,
             note: category,
             date: dateStr,
-            userId: currentUserId
+            sheetName: targetSheetName
           })
         });
         closeModal();
@@ -450,7 +471,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             rowIndex: parseInt(rowIndex, 10),
-            userId: currentUserId
+            sheetName: targetSheetName
           })
         });
         closeModal();
