@@ -84,9 +84,12 @@
   <!-- Modal แก้ไขรายการ -->
   <div id="editModal" class="fixed inset-0 bg-purple-950/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden z-50">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-pink-100">
+      <!-- Header Modal พร้อมปุ่มกากบาทสีแดงเห็นชัดเจน -->
       <div class="flex justify-between items-center mb-4 border-b border-pink-100 pb-3">
         <h3 class="font-bold text-lg text-purple-900">✏️ แก้ไขรายการ</h3>
-        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+        <button onclick="closeModal()" aria-label="Close" class="w-10 h-10 -mr-2 flex items-center justify-center rounded-full text-red-500 bg-red-50 hover:bg-red-100 active:bg-red-200 transition-colors shadow-sm">
+          <span class="text-2xl font-black leading-none">&times;</span>
+        </button>
       </div>
 
       <input type="hidden" id="editRowIndex">
@@ -160,12 +163,11 @@
       }
     }
 
-    // ฟังก์ชันถอดรหัสวันที่แบบรองรับ 3/8/69 และ 03/08/2026
     function getItemDateObj(dateStr) {
       if (!dateStr) return null;
       try {
         let str = String(dateStr).trim();
-        let datePart = str.split(' ')[0]; // เอาเฉพาะส่วนวันที่ ตัดเวลาออก
+        let datePart = str.split(' ')[0];
         let day, month, year;
 
         if (datePart.includes('/')) {
@@ -188,11 +190,10 @@
 
         if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
 
-        // แปลงปี 2 หลัก เช่น 69 ให้กลายเป็น ค.ศ. 2026
         if (year < 100) {
-          year = 2000 + (year - 43); // 69 พ.ศ. -> 26 ค.ศ.
+          year = 2000 + (year - 43);
         } else if (year > 2400) {
-          year -= 543; // แปลง พ.ศ. 2569 -> 2026
+          year -= 543;
         }
 
         return new Date(year, month - 1, day);
@@ -215,20 +216,16 @@
         const itemDateTime = new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate()).getTime();
 
         if (filterType === 'daily') {
-          // ตรงกับวันนี้เป๊ะๆ
           return itemDateTime === todayStart;
         } else if (filterType === 'weekly') {
-          // ย้อนหลัง 7 วันจากวันนี้
           const sevenDaysAgo = todayStart - (6 * 24 * 60 * 60 * 1000);
           return itemDateTime >= sevenDaysAgo;
         } else if (filterType === 'monthly') {
-          // เดือนเดียวกัน และปีเดียวกัน
           return itemDate.getFullYear() === now.getFullYear() && itemDate.getMonth() === now.getMonth();
         }
         return true;
       });
 
-      // คำนวณยอดรวมใหม่
       let totalIncome = 0;
       let totalExpense = 0;
 
@@ -243,7 +240,6 @@
 
       const netTotal = totalIncome - totalExpense;
 
-      // อัปเดตตัวเลขบน UI
       document.getElementById("totalIncome").innerText = `฿${totalIncome.toLocaleString()}`;
       document.getElementById("totalExpense").innerText = `฿${totalExpense.toLocaleString()}`;
       document.getElementById("netTotal").innerText = `฿${netTotal.toLocaleString()}`;
