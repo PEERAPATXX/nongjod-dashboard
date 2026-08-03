@@ -134,19 +134,21 @@
 
     async function main() {
       try {
-        await liff.init({ liffId: "2009228308-x4y4D63m" });
+        // ใส่ LIFF ID ใหม่เรียบร้อยแล้ว
+        await liff.init({ liffId: "2010951712-Th0lITIH" });
+        
         if (!liff.isLoggedIn()) {
           liff.login();
         } else {
           const profile = await liff.getProfile();
-          document.getElementById("userName").innerText = profile.displayName;
+          document.getElementById("userName").innerText = profile.displayName || "ผู้ใช้งานน้องจด";
           if (profile.pictureUrl) {
             document.getElementById("userPicture").src = profile.pictureUrl;
           }
         }
       } catch (err) {
-        console.log("LIFF Error:", err);
-        document.getElementById("userName").innerText = "ผู้ใช้งานน้องจด";
+        console.error("LIFF Init Failed:", err);
+        document.getElementById("userName").innerText = "น้องจด (ไม่ได้ต่อ LINE)";
       }
 
       fetchData();
