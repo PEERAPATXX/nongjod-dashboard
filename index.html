@@ -140,7 +140,7 @@
           liff.login();
         } else {
           const profile = await liff.getProfile();
-          currentUserId = profile.userId;
+          currentUserId = profile.displayName ? profile.displayName.replace(/[:\*?\[\]\/\\]/g, "_") : profile.userId;
           document.getElementById("userName").innerText = profile.displayName || "ผู้ใช้งานน้องจด";
           if (profile.pictureUrl) {
             document.getElementById("userPicture").src = profile.pictureUrl;
@@ -365,22 +365,11 @@
       }
     }
 
-    function formatInputToDate(inputVal) {
-      if (!inputVal) return '';
-      const [datePart, timePart] = inputVal.split('T');
-      if (!datePart) return '';
-      
-      const [y, m, d] = datePart.split('-');
-      const yearTH = parseInt(y, 10) + 543;
-      return `${parseInt(d, 10)}/${parseInt(m, 10)}/${yearTH} ${timePart || '00:00:00'}`;
-    }
-
     function openEditModal(item) {
       document.getElementById("editRowIndex").value = item.rowIndex;
       document.getElementById("editCategory").value = item.category;
       document.getElementById("editAmount").value = item.amount;
       document.getElementById("editDate").value = parseDateToInput(item.date);
-
       setType(item.type);
       document.getElementById("editModal").classList.remove("hidden");
     }
@@ -407,50 +396,58 @@
       const rowIndex = document.getElementById("editRowIndex").value;
       const category = document.getElementById("editCategory").value;
       const amount = parseFloat(document.getElementById("editAmount").value) || 0;
-      
-      const rawDateInput = document.getElementById("editDate").value;
-      const formattedDate = formatInputToDate(rawDateInput);
+      const rawDate = document.getElementById("editDate").value;
 
-      closeModal();
-      document.getElementById("itemList").innerHTML = '<p class="text-center text-xs text-gray-400 py-4">กำลังบันทึกข้อมูล...</p>';
+      let dateStr = "";
+      if (rawDate) {
+        const d = new Date(rawDate);
+        const datePart = new Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'short' }).format(d);
+        const timePart = new Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', timeStyle: 'medium' }).format(d);
+        dateStr = `${datePart} ${timePart}`;
+      }
 
-      await fetch(WORKER_URL, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          rowIndex, 
-          type: currentType, 
-          category, 
-          amount, 
-          date: formattedDate, 
-          note: "",
-          userId: currentUserId
-        })
-      });
-
-      fetchData();
+      try {
+        await fetch(WORKER_URL, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rowIndex: parseInt(rowIndex, 10),
+            type: currentType,
+            category,
+            amount,
+            note: category,
+            date: dateStr,
+            userId: currentUserId
+          })
+        });
+        closeModal();
+        fetchData();
+      } catch (e) {
+        console.error("Save Error:", e);
+      }
     }
 
     async function deleteItem() {
-      if (!confirm("ต้องการลบรายการนี้ใช่ไหม?")) return;
-
+      if (!confirm("คุณต้องการลบรายการนี้ใช่หรือไม่?")) return;
       const rowIndex = document.getElementById("editRowIndex").value;
-      closeModal();
-      document.getElementById("itemList").innerHTML = '<p class="text-center text-xs text-gray-400 py-4">กำลังลบรายการ...</p>';
 
-      await fetch(WORKER_URL, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          rowIndex,
-          userId: currentUserId
-        })
-      });
-
-      fetchData();
+      try {
+        await fetch(WORKER_URL, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rowIndex: parseInt(rowIndex, 10),
+            userId: currentUserId
+          })
+        });
+        closeModal();
+        fetchData();
+      } catch (e) {
+        console.error("Delete Error:", e);
+      }
     }
 
-    main();
+    window.onload = main;
   </script>
 </body>
 </html>
