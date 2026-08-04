@@ -13,7 +13,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- Flatpickr Core CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
@@ -216,7 +215,6 @@
     let filterStartDate = null;
     let filterEndDate = null;
 
-    // แก้ไขฟังก์ชันทำความสะอาดชื่อภาษาไทยให้ปลอดภัย
     function cleanDisplayName(name) {
       if (!name) return "User";
       let cleaned = name.replace(/[^\u0E00-\u0E7F\a-zA-Z0-9\s]/g, "").trim();
@@ -284,7 +282,6 @@
       }
     }
 
-    // แก้ไขระบบปฏิทินแบบเลือกช่วงวันที่ Range
     function initCalendarPicker() {
       flatpickr.localize(flatpickr.l10ns.th);
       
@@ -373,12 +370,10 @@
       return parseFloat(cleanVal) || 0;
     }
 
+    // ✅ ปรับปรุงการดึง Object วันที่เพื่อป้องกันเคสปีผิดปกติ เช่น 026
     function getItemDateObj(dateStr) {
       if (!dateStr) return null;
       try {
-        let d = new Date(dateStr);
-        if (!isNaN(d.getTime())) return d;
-
         let cleanStr = String(dateStr).trim().replace('T', ' ');
         let [datePart, timePart] = cleanStr.split(' ');
         let day, month, year;
@@ -390,7 +385,7 @@
           year = parseInt(parts[2], 10);
         } else if (datePart.includes('-')) {
           const parts = datePart.split('-');
-          if (parts[0].length === 4) {
+          if (parts[0].length <= 4) {
             year = parseInt(parts[0], 10);
             month = parseInt(parts[1], 10);
             day = parseInt(parts[2], 10);
@@ -402,6 +397,8 @@
         }
 
         if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+        
+        if (year < 100) year += 2000;
         if (year > 2400) year -= 543;
 
         let hours = 0, minutes = 0, seconds = 0;
