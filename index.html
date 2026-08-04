@@ -9,22 +9,93 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- [เพิ่ม] Flatpickr CSS & JS สำหรับปฏิทิน Popup -->
+  <!-- Flatpickr Core CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
 
   <style>
     body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; }
     input, select, textarea { font-size: 14px !important; }
-    /* ตกแต่ง Flatpickr ให้เข้ากับธีม */
-    .flatpickr-calendar { font-family: 'Prompt', sans-serif !important; border-radius: 1rem !important; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important; }
-    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange { background: #E6007E !important; border-color: #E6007E !important; }
-    .flatpickr-day.inRange { background: #FCE7F3 !important; border-color: #FCE7F3 !important; box-shadow: none !important; }
+
+    /* Custom Flatpickr ให้จัดอยู่ตรงกลางหน้าจอ + เปลี่ยนเป็นโทนสีชมพู */
+    .flatpickr-calendar {
+      font-family: 'Prompt', sans-serif !important;
+      border-radius: 1.25rem !important;
+      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.25) !important;
+      border: 1px solid #FCE7F3 !important;
+      background: #ffffff !important;
+      position: fixed !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      margin: 0 !important;
+      z-index: 99999 !important;
+    }
+
+    /* ส่วนหัวปฏิทิน (Header) */
+    .flatpickr-months {
+      background: #E6007E !important;
+      border-top-left-radius: 1.25rem !important;
+      border-top-right-radius: 1.25rem !important;
+      padding: 6px 0 !important;
+    }
+    .flatpickr-months .flatpickr-month,
+    .flatpickr-months .flatpickr-prev-month,
+    .flatpickr-months .flatpickr-next-month {
+      color: #ffffff !important;
+      fill: #ffffff !important;
+    }
+    .flatpickr-current-month .flatpickr-monthDropdown-months,
+    .flatpickr-current-month input.cur-year {
+      font-weight: 700 !important;
+      color: #ffffff !important;
+    }
+
+    /* แถบชื่อวัน จ อ พ */
+    span.flatpickr-weekday {
+      background: #E6007E !important;
+      color: #ffffff !important;
+      font-weight: 600 !important;
+    }
+
+    /* วันที่เลือก (Selected / Range) */
+    .flatpickr-day.selected, 
+    .flatpickr-day.startRange, 
+    .flatpickr-day.endRange,
+    .flatpickr-day.selected.inRange,
+    .flatpickr-day.startRange.inRange,
+    .flatpickr-day.endRange.inRange {
+      background: #E6007E !important;
+      border-color: #E6007E !important;
+      color: #ffffff !important;
+      font-weight: bold !important;
+    }
+    .flatpickr-day.inRange {
+      background: #FCE7F3 !important;
+      border-color: #FCE7F3 !important;
+      box-shadow: -5px 0 0 #FCE7F3, 5px 0 0 #FCE7F3 !important;
+      color: #DB2777 !important;
+    }
+    .flatpickr-day:hover {
+      background: #FBCFE8 !important;
+    }
+
+    /* ฉากหลังสีมืดเวลากดเปิดปฏิทิน */
+    #calendarBackdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(46, 16, 101, 0.4);
+      backdrop-filter: blur(2px);
+      z-index: 99990;
+      display: none;
+    }
   </style>
 </head>
 <body class="p-4 text-gray-800 max-w-md mx-auto min-h-screen">
+
+  <!-- ฉากหลังเบลอสำหรับ Flatpickr -->
+  <div id="calendarBackdrop" onclick="closeCalendarPicker()"></div>
 
   <!-- Header Profile -->
   <div class="flex items-center space-x-3 bg-white p-4 rounded-2xl shadow-sm mb-4 border border-pink-100">
@@ -39,14 +110,13 @@
     <div class="flex justify-between items-center mb-4">
       <h3 class="font-bold text-lg text-purple-900">📊 สรุปยอด</h3>
       
-      <!-- [ปุ่มเลือกปฏิทินใหม่] กดแล้วเด้ง Pop-up ปฏิทินแบบในรูป -->
+      <!-- ปุ่มเลือกปฏิทิน -->
       <div class="relative">
         <button id="calendarBtn" class="bg-pink-50 border border-pink-200 text-pink-600 font-semibold text-xs rounded-xl px-3 py-1.5 focus:outline-none flex items-center space-x-1.5 hover:bg-pink-100 active:scale-95 transition">
           <span>📅</span>
           <span id="calendarLabel">เลือกวันที่</span>
           <span class="text-[10px]">▼</span>
         </button>
-        <!-- hidden input สำหรับเก็บค่าจาก Flatpickr -->
         <input type="text" id="datePickerInput" class="hidden">
       </div>
     </div>
@@ -87,7 +157,7 @@
   <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 border border-pink-100">
     <div class="flex justify-between items-center mb-4">
       <h3 class="font-bold text-lg text-gray-900">รายการล่าสุด</h3>
-      <button class="text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-200">ดูทั้งหมด</button>
+      <button onclick="clearDateFilter()" class="text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-200">ดูทั้งหมด</button>
     </div>
 
     <div id="itemList" class="space-y-4 max-h-[500px] overflow-y-auto pr-1">
@@ -190,7 +260,6 @@
       }
     }
 
-    // [ฟังก์ชันสร้างปฏิทิน Pop-up]
     function initCalendarPicker() {
       flatpickr.localize(flatpickr.l10ns.th);
       
@@ -198,6 +267,18 @@
         mode: "range",
         dateFormat: "Y-m-d",
         locale: "th",
+        disableMobile: "true",
+        onOpen: function(selectedDates, dateStr, instance) {
+          document.getElementById("calendarBackdrop").style.display = "block";
+          
+          // โหลดค่าวันที่เคยเลือกไว้กลับเข้าปฏิทินเสมอ
+          if (filterStartDate && filterEndDate) {
+            instance.setDate([filterStartDate, filterEndDate], false);
+          }
+        },
+        onClose: function(selectedDates) {
+          document.getElementById("calendarBackdrop").style.display = "none";
+        },
         onChange: function(selectedDates, dateStr, instance) {
           if (selectedDates.length === 1) {
             filterStartDate = new Date(selectedDates[0].setHours(0,0,0,0));
@@ -209,14 +290,9 @@
             filterEndDate = new Date(selectedDates[1].setHours(23,59,59,999));
             document.getElementById("calendarLabel").innerText = `${formatThaiShortDate(selectedDates[0])} - ${formatThaiShortDate(selectedDates[1])}`;
             applyFilter();
-          }
-        },
-        onClose: function(selectedDates) {
-          if (selectedDates.length === 0) {
-            filterStartDate = null;
-            filterEndDate = null;
-            document.getElementById("calendarLabel").innerText = "ทั้งหมด";
-            applyFilter();
+            
+            // เมื่อเลือกช่วงวันครบ 2 วัน ปิดหน้าต่างปฏิทินให้อัตโนมัติทันที
+            instance.close();
           }
         }
       });
@@ -224,6 +300,18 @@
       document.getElementById("calendarBtn").addEventListener("click", function() {
         fpInstance.open();
       });
+    }
+
+    function closeCalendarPicker() {
+      if (fpInstance) fpInstance.close();
+    }
+
+    function clearDateFilter() {
+      if (fpInstance) fpInstance.clear();
+      filterStartDate = null;
+      filterEndDate = null;
+      document.getElementById("calendarLabel").innerText = "เลือกวันที่";
+      applyFilter();
     }
 
     async function fetchData() {
