@@ -233,7 +233,37 @@
       return `${cleanName}_${mm}-${yyyy}`;
     }
 
+    // ฟังก์ชั่นโหลดวันที่ที่เคยเลือกไว้ออกมาจาก LocalStorage
+    function loadSavedDateFilter() {
+      const savedStart = localStorage.getItem("nongjod_filter_start");
+      const savedEnd = localStorage.getItem("nongjod_filter_end");
+      
+      if (savedStart && savedEnd) {
+        filterStartDate = new Date(savedStart);
+        filterEndDate = new Date(savedEnd);
+        
+        // อัปเดตข้อความบนปุ่ม
+        if (filterStartDate.toDateString() === filterEndDate.toDateString()) {
+          document.getElementById("calendarLabel").innerText = formatThaiShortDate(filterStartDate);
+        } else {
+          document.getElementById("calendarLabel").innerText = `${formatThaiShortDate(filterStartDate)} - ${formatThaiShortDate(filterEndDate)}`;
+        }
+      }
+    }
+
+    // ฟังก์ชั่นบันทึกวันที่ลง LocalStorage
+    function saveDateFilter(startDate, endDate) {
+      if (startDate && endDate) {
+        localStorage.setItem("nongjod_filter_start", startDate.toISOString());
+        localStorage.setItem("nongjod_filter_end", endDate.toISOString());
+      } else {
+        localStorage.removeItem("nongjod_filter_start");
+        localStorage.removeItem("nongjod_filter_end");
+      }
+    }
+
     async function main() {
+      loadSavedDateFilter(); // ดึงค่าเดิมออกมาก่อน
       initCalendarPicker();
       try {
         await liff.init({ liffId: "2010951712-Th0lITIH" });
@@ -263,15 +293,16 @@
     function initCalendarPicker() {
       flatpickr.localize(flatpickr.l10ns.th);
       
+      const defaultDates = (filterStartDate && filterEndDate) ? [filterStartDate, filterEndDate] : [];
+
       fpInstance = flatpickr("#datePickerInput", {
         mode: "range",
         dateFormat: "Y-m-d",
         locale: "th",
         disableMobile: "true",
+        defaultDate: defaultDates, // ใส่ค่าเริ่มต้นให้ Flatpickr รู้จัก
         onOpen: function(selectedDates, dateStr, instance) {
           document.getElementById("calendarBackdrop").style.display = "block";
-          
-          // โหลดค่าวันที่เคยเลือกไว้กลับเข้าปฏิทินเสมอ
           if (filterStartDate && filterEndDate) {
             instance.setDate([filterStartDate, filterEndDate], false);
           }
@@ -284,14 +315,17 @@
             filterStartDate = new Date(selectedDates[0].setHours(0,0,0,0));
             filterEndDate = new Date(selectedDates[0].setHours(23,59,59,999));
             document.getElementById("calendarLabel").innerText = formatThaiShortDate(selectedDates[0]);
+            
+            saveDateFilter(filterStartDate, filterEndDate); // เซฟลงเครื่อง
             applyFilter();
           } else if (selectedDates.length === 2) {
             filterStartDate = new Date(selectedDates[0].setHours(0,0,0,0));
             filterEndDate = new Date(selectedDates[1].setHours(23,59,59,999));
             document.getElementById("calendarLabel").innerText = `${formatThaiShortDate(selectedDates[0])} - ${formatThaiShortDate(selectedDates[1])}`;
+            
+            saveDateFilter(filterStartDate, filterEndDate); // เซฟลงเครื่อง
             applyFilter();
             
-            // เมื่อเลือกช่วงวันครบ 2 วัน ปิดหน้าต่างปฏิทินให้อัตโนมัติทันที
             instance.close();
           }
         }
@@ -310,6 +344,7 @@
       if (fpInstance) fpInstance.clear();
       filterStartDate = null;
       filterEndDate = null;
+      saveDateFilter(null, null); // ล้างค่าใน LocalStorage
       document.getElementById("calendarLabel").innerText = "เลือกวันที่";
       applyFilter();
     }
