@@ -28,10 +28,6 @@
       0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
       50% { transform: translateY(-5px) scale(1.1) rotate(5deg); }
     }
-    @keyframes sandRotate {
-      0%, 100% { transform: scale(1) rotate(0deg); }
-      50% { transform: scale(1.1) rotate(180deg); }
-    }
     @keyframes pulseGlow {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.85; transform: scale(1.05); }
@@ -43,17 +39,16 @@
 
     /* Assign Animations to classes */
     .icon-trophy { animation: trophyBounce 2s infinite ease-in-out; display: inline-block; }
-    .icon-[#hourglass] { animation: sandRotate 3s infinite ease-in-out; display: inline-block; }
     .icon-pulse { animation: pulseGlow 2s infinite ease-in-out; display: inline-block; }
     .icon-float { animation: floatIcon 3s infinite ease-in-out; display: inline-block; }
   </style>
 </head>
 <body class="max-w-md mx-auto min-h-screen text-gray-800 pb-28">
 
-  <!-- Header (เอาลูกศรย้อนกลับและปุ่มกากบาทปิดออกแล้ว) -->
+  <!-- Header -->
   <div class="sticky top-0 bg-white z-40 px-4 py-3 border-b border-gray-100 flex justify-center items-center">
     <h1 class="font-bold text-lg text-gray-800 flex items-center gap-1.5">
-      <span class="icon-pulse"></span> เป้าหมายประจำเดือน
+      <span class="icon-pulse">🎯</span> เป้าหมายประจำเดือน
     </h1>
   </div>
 
@@ -123,7 +118,6 @@
         <h3 class="font-bold text-lg text-gray-800 flex items-center gap-1.5">
           <span class="icon-pulse">✨</span> เพิ่มเป้าหมายใหม่
         </h3>
-        <!-- ปุ่มกากบาทปิด Modal สีแดงเด่นชัด -->
         <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-red-100 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center text-xl font-bold transition-all">&times;</button>
       </div>
 
@@ -166,11 +160,8 @@
     const WORKER_URL = "https://nongjod.hay-peerapattx-co-th.workers.dev/";
     let selectedDate = new Date();
 
-    const defaultGoals = [
-      { id: 1, title: "ค่างวดรถยนต์", target: 8500 },
-      { id: 2, title: "ค่าอินเทอร์เน็ตบ้าน", target: 590 },
-      { id: 3, title: "ค่าโทรศัพท์มือถือ", target: 399 }
-    ];
+    // กำหนดค่าเริ่มต้นเป็น Array ว่าง ไม่เอาข้อมูลตัวอย่างแล้ว
+    const defaultGoals = [];
 
     function cleanDisplayName(name) {
       if (!name) return "User";
@@ -302,7 +293,7 @@
       if (goals.length === 0) {
         container.innerHTML = `
           <div class="text-center py-8 bg-white rounded-3xl border border-gray-100">
-            <p class="text-3xl icon-float">⏳</p>
+            <p class="text-3xl icon-float">🎯</p>
             <p class="text-xs text-gray-400 mt-2">ยังไม่มีรายการเป้าหมายในเดือนนี้</p>
           </div>
         `;
@@ -332,7 +323,6 @@
         card.innerHTML = `
           <div class="flex justify-between items-start">
             <div class="flex items-center gap-2.5">
-              <!-- ไอคอนเปลี่ยนเป็น ⏳ (นาฬิการทราย) หากยังไม่เสร็จ และ 🏆 เมื่อเสร็จแล้ว -->
               <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl ${isCompleted ? 'bg-amber-100 text-amber-600' : 'bg-pink-50 text-[#E6007E]'}">
                 <span class="${isCompleted ? 'icon-trophy' : 'icon-float'}">${isCompleted ? '🏆' : '⏳'}</span>
               </div>
@@ -343,7 +333,6 @@
                 </p>
               </div>
             </div>
-            <!-- ปุ่มกากบาทลบรายการ สีแดงชัดเจน ทรงกลม -->
             <button onclick="deleteGoal(${goal.id})" class="w-8 h-8 rounded-full bg-red-100 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center text-xl font-bold transition-all shadow-sm active:scale-90" title="ลบรายการ">
               &times;
             </button>
