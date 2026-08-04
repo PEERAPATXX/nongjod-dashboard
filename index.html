@@ -76,7 +76,7 @@
       <span class="text-[10px] text-gray-400">กดที่รายการเพื่อแก้ไข/ลบ</span>
     </div>
 
-    <div id="itemList" class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+    <div id="itemList" class="space-y-4 max-h-96 overflow-y-auto pr-1">
       <p class="text-center text-xs text-gray-400 py-4">กำลังโหลดรายการ...</p>
     </div>
   </div>
@@ -307,6 +307,7 @@
       });
     }
 
+    // 💡 ปรับปรุงตรงนี้: แยกรายการตามวันที่ก่อนเรนเดอร์
     function renderItemList(items) {
       const listEl = document.getElementById("itemList");
       if (!items || items.length === 0) {
@@ -314,27 +315,70 @@
         return;
       }
 
-      listEl.innerHTML = items.map(item => {
-        const itemType = String(item.type || '');
-        const isIncome = itemType.includes("รายรับ") || itemType.includes("รับ");
-        const colorClass = isIncome ? "text-sky-600 bg-sky-50" : "text-pink-600 bg-pink-50";
-        const amountSign = isIncome ? "+" : "-";
-        const numAmount = parseAmount(item.amount);
+      // 1. จัดกลุ่ม (Group) ตาม วันที่ (YYYY-MM-DD)
+      const grouped = {};
+      items.forEach(item => {
+        let dateKey = "ไม่ระบุวันที่";
+        let timeKey = "";
 
-        return `
-          <div onclick='openEditModal(${JSON.stringify(item)})' class="flex justify-between items-center p-3 rounded-xl border border-pink-50 hover:border-pink-200 cursor-pointer active:scale-98 transition bg-white">
-            <div>
-              <p class="font-semibold text-sm text-gray-800">${item.category || item.note || '-'}</p>
-              <p class="text-[10px] text-gray-400">${item.date || ''}</p>
-            </div>
-            <div class="text-right">
-              <span class="text-sm font-bold ${colorClass} px-2.5 py-1 rounded-lg">
-                ${amountSign}฿${numAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        if (item.date) {
+          const parts = String(item.date).trim().split(/\s+/);
+          dateKey = parts[0] || "ไม่ระบุวันที่";
+          timeKey = parts[1] || "";
+        }
+
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = [];
+        }
+        grouped[dateKey].push({ ...item, timeOnly: timeKey });
+      });
+
+      // 2. สร้าง HTML แยกส่วนกลุ่มวันที่
+      let html = "";
+      for (const [dateTitle, groupItems] of Object.entries(grouped)) {
+        html += `
+          <div class="mb-3">
+            <!-- หัวข้อวันที่ -->
+            <div class="flex items-center space-x-2 mb-2">
+              <span class="text-xs font-bold text-purple-900 bg-pink-100/70 text-purple-900 px-2.5 py-0.5 rounded-full">
+                📅 ${dateTitle}
               </span>
+              <div class="h-[1px] flex-1 bg-pink-100"></div>
+            </div>
+
+            <!-- รายการของวันนั้นๆ -->
+            <div class="space-y-2">
+        `;
+
+        groupItems.forEach(item => {
+          const itemType = String(item.type || '');
+          const isIncome = itemType.includes("รายรับ") || itemType.includes("รับ");
+          const colorClass = isIncome ? "text-sky-600 bg-sky-50" : "text-pink-600 bg-pink-50";
+          const amountSign = isIncome ? "+" : "-";
+          const numAmount = parseAmount(item.amount);
+
+          html += `
+            <div onclick='openEditModal(${JSON.stringify(item)})' class="flex justify-between items-center p-3 rounded-xl border border-pink-50 hover:border-pink-200 cursor-pointer active:scale-98 transition bg-white shadow-2xs">
+              <div>
+                <p class="font-semibold text-sm text-gray-800">${item.category || item.note || '-'}</p>
+                <p class="text-[10px] text-gray-400">${item.timeOnly ? '⏰ ' + item.timeOnly : ''}</p>
+              </div>
+              <div class="text-right">
+                <span class="text-sm font-bold ${colorClass} px-2.5 py-1 rounded-lg">
+                  ${amountSign}฿${numAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          `;
+        });
+
+        html += `
             </div>
           </div>
         `;
-      }).join('');
+      }
+
+      listEl.innerHTML = html;
     }
 
     function parseDateToInput(dateStr) {
