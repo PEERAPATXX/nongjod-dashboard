@@ -17,13 +17,14 @@
     body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; }
     .nav-active { color: #E6007E; font-weight: 600; }
     
-    /* Input Month Custom Styling */
-    input[type="month"]::-webkit-calendar-picker-indicator {
+    /* Custom Input Styling */
+    input[type="month"]::-webkit-calendar-picker-indicator,
+    input[type="date"]::-webkit-calendar-picker-indicator {
       cursor: pointer;
       opacity: 0.6;
     }
 
-    /* Keyframe Animations สำหรับไอคอนขยับ */
+    /* Keyframe Animations */
     @keyframes trophyBounce {
       0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
       50% { transform: translateY(-5px) scale(1.1) rotate(5deg); }
@@ -37,7 +38,6 @@
       50% { transform: translateY(-4px); }
     }
 
-    /* Assign Animations to classes */
     .icon-trophy { animation: trophyBounce 2s infinite ease-in-out; display: inline-block; }
     .icon-pulse { animation: pulseGlow 2s infinite ease-in-out; display: inline-block; }
     .icon-float { animation: floatIcon 3s infinite ease-in-out; display: inline-block; }
@@ -54,10 +54,9 @@
 
   <div class="p-4 space-y-4">
 
-    <!-- Section สรุปภาพรวม + ตัวเลือกปฏิทินย้อนหลัง -->
+    <!-- Section สรุปภาพรวม -->
     <div class="bg-gradient-to-br from-[#E6007E] to-pink-500 text-white p-5 rounded-3xl shadow-lg shadow-pink-100 relative overflow-hidden">
       
-      <!-- ตัวเลือกเดือน/ปฏิทิน -->
       <div class="flex justify-between items-center mb-3">
         <span class="text-xs font-medium opacity-90 flex items-center gap-1">
           <span class="icon-float">📅</span> เลือกเดือนที่ต้องการดู
@@ -105,13 +104,13 @@
       </div>
       
       <div id="goalList" class="space-y-3">
-        <!-- รายการจะถูกคำนวณและแสดงผลผ่าน JavaScript -->
+        <!-- รายการแสดงผลผ่าน JS -->
       </div>
     </div>
 
   </div>
 
-  <!-- Modal สำหรับเพิ่มเป้าหมายใหม่ -->
+  <!-- Modal สำหรับเพิ่มเป้าหมายใหม่ (เพิ่มช่องใส่วันที่ครบกำหนด) -->
   <div id="goalModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
     <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-xl">
       <div class="flex justify-between items-center border-b border-gray-100 pb-3">
@@ -130,6 +129,12 @@
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">ยอดเป้าหมาย (บาท)</label>
           <input type="number" id="goalTarget" required placeholder="เช่น 590" min="1" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#E6007E]">
+        </div>
+
+        <!-- เพิ่มช่องเลือกวันกำหนดจ่าย/ครบกำหนด -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">วันกำหนดจ่าย / ครบกำหนด (ถ้ามี)</label>
+          <input type="date" id="goalDueDate" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#E6007E]">
         </div>
 
         <div class="pt-2 flex gap-2">
@@ -159,8 +164,6 @@
   <script>
     const WORKER_URL = "https://nongjod.hay-peerapattx-co-th.workers.dev/";
     let selectedDate = new Date();
-
-    // กำหนดค่าเริ่มต้นเป็น Array ว่าง ไม่เอาข้อมูลตัวอย่างแล้ว
     const defaultGoals = [];
 
     function cleanDisplayName(name) {
@@ -174,6 +177,12 @@
       if (!val) return 0;
       const cleanVal = String(val).replace(/,/g, '');
       return parseFloat(cleanVal) || 0;
+    }
+
+    function formatDateTH(dateStr) {
+      if (!dateStr) return '';
+      const [yyyy, mm, dd] = dateStr.split('-');
+      return `${dd}/${mm}/${yyyy}`;
     }
 
     function getMonthKey(date) {
@@ -215,11 +224,20 @@
       e.preventDefault();
       const title = document.getElementById('goalTitle').value.trim();
       const target = parseFloat(document.getElementById('goalTarget').value) || 0;
+      const dueDate = document.getElementById('goalDueDate').value;
 
       if (!title || target <= 0) return;
 
       const goals = getStoredGoals(selectedDate);
-      goals.push({ id: Date.now(), title, target });
+      goals.push({ id: Date.now(), title, target, dueDate });
+
+      // จัดเรียงเป้าหมาย: รายการที่มีวันที่ครบกำหนดก่อนจะถูกจัดไว้ด้านบน
+      goals.sort((a, b) => {
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate) - new Date(b.dueDate);
+      });
+
       saveStoredGoals(selectedDate, goals);
       closeModal();
     }
@@ -328,9 +346,10 @@
               </div>
               <div>
                 <h4 class="font-bold text-sm text-gray-800">${goal.title}</h4>
-                <p class="text-[11px] text-gray-400">
-                  ${isCompleted ? '🎉 จ่าย/เก็บครบแล้ว!' : `ขาดอีก ฿${(goal.target - filledAmount).toLocaleString('th-TH')}`}
-                </p>
+                <div class="flex items-center gap-2 text-[11px] text-gray-400 mt-0.5">
+                  <span>${isCompleted ? '🎉 จ่าย/เก็บครบแล้ว!' : `ขาดอีก ฿${(goal.target - filledAmount).toLocaleString('th-TH')}`}</span>
+                  ${goal.dueDate ? `<span class="text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded-md font-medium">📅 ${formatDateTH(goal.dueDate)}</span>` : ''}
+                </div>
               </div>
             </div>
             <button onclick="deleteGoal(${goal.id})" class="w-8 h-8 rounded-full bg-red-100 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center text-xl font-bold transition-all shadow-sm active:scale-90" title="ลบรายการ">
