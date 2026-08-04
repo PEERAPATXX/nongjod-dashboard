@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  
+  <title>เป้าหมาย - น้องจด</title>
+  
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; }
+    .nav-active { color: #E6007E; font-weight: 600; }
+    
+    /* Input Month Custom Styling */
+    input[type="month"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.6;
+    }
+
+    /* Keyframe Animations สำหรับไอคอนขยับ */
+    @keyframes trophyBounce {
+      0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
+      50% { transform: translateY(-5px) scale(1.1) rotate(5deg); }
+    }
+    @keyframes sandRotate {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(1.1) rotate(180deg); }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.05); }
+    }
+    @keyframes floatIcon {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+
+    /* Assign Animations to classes */
+    .icon-trophy { animation: trophyBounce 2s infinite ease-in-out; display: inline-block; }
+    .icon-[#hourglass] { animation: sandRotate 3s infinite ease-in-out; display: inline-block; }
+    .icon-pulse { animation: pulseGlow 2s infinite ease-in-out; display: inline-block; }
+    .icon-float { animation: floatIcon 3s infinite ease-in-out; display: inline-block; }
+  </style>
+</head>
+<body class="max-w-md mx-auto min-h-screen text-gray-800 pb-28">
+
+  <!-- Header (เอาลูกศรย้อนกลับและปุ่มกากบาทปิดออกแล้ว) -->
+  <div class="sticky top-0 bg-white z-40 px-4 py-3 border-b border-gray-100 flex justify-center items-center">
+    <h1 class="font-bold text-lg text-gray-800 flex items-center gap-1.5">
+      <span class="icon-pulse"></span> เป้าหมายประจำเดือน
+    </h1>
+  </div>
+
+  <div class="p-4 space-y-4">
+
+    <!-- Section สรุปภาพรวม + ตัวเลือกปฏิทินย้อนหลัง -->
+    <div class="bg-gradient-to-br from-[#E6007E] to-pink-500 text-white p-5 rounded-3xl shadow-lg shadow-pink-100 relative overflow-hidden">
+      
+      <!-- ตัวเลือกเดือน/ปฏิทิน -->
+      <div class="flex justify-between items-center mb-3">
+        <span class="text-xs font-medium opacity-90 flex items-center gap-1">
+          <span class="icon-float">📅</span> เลือกเดือนที่ต้องการดู
+        </span>
+        <div class="bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/30 text-xs">
+          <input type="month" id="monthPicker" onchange="onMonthChange(this.value)" class="bg-transparent text-white font-medium focus:outline-none cursor-pointer">
+        </div>
+      </div>
+
+      <div class="flex justify-between items-start z-10 relative">
+        <div>
+          <p class="text-xs opacity-80 font-light">เงินคงเหลือจริงในระบบ</p>
+          <h2 id="netBalanceText" class="text-3xl font-bold mt-0.5">฿0</h2>
+          <p id="totalTargetText" class="text-xs opacity-80 mt-1">จากเป้าหมายค่างวดรวม ฿0</p>
+        </div>
+        <div class="text-4xl bg-white/20 p-3 rounded-2xl backdrop-blur-sm">
+          <span class="icon-trophy">🏆</span>
+        </div>
+      </div>
+
+      <!-- Total Progress Bar -->
+      <div class="mt-4 z-10 relative">
+        <div class="flex justify-between text-xs mb-1 font-medium">
+          <span>ความคืบหน้าการจ่าย/ออม</span>
+          <span id="totalPercentText">0%</span>
+        </div>
+        <div class="w-full bg-black/20 rounded-full h-3 overflow-hidden">
+          <div id="totalProgressBar" class="bg-white h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ปุ่มเปิด Modal ตั้งเป้าหมายใหม่ -->
+    <button onclick="openModal()" class="w-full bg-white border-2 border-dashed border-pink-300 hover:border-[#E6007E] text-[#E6007E] font-semibold py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm">
+      <span class="text-xl font-bold icon-pulse">+</span> ตั้งเป้าหมาย/ค่างวดประจำเดือนนี้
+    </button>
+
+    <!-- รายการเป้าหมายทั้งหมด -->
+    <div class="space-y-3">
+      <div class="flex justify-between items-center px-1">
+        <h3 class="font-bold text-gray-800 text-sm flex items-center gap-1">
+          <span class="icon-float">📋</span> รายการค่างวด/เป้าหมาย
+        </h3>
+        <span id="loadingStatus" class="text-xs text-gray-400">กำลังโหลด...</span>
+      </div>
+      
+      <div id="goalList" class="space-y-3">
+        <!-- รายการจะถูกคำนวณและแสดงผลผ่าน JavaScript -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal สำหรับเพิ่มเป้าหมายใหม่ -->
+  <div id="goalModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-xl">
+      <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+        <h3 class="font-bold text-lg text-gray-800 flex items-center gap-1.5">
+          <span class="icon-pulse">✨</span> เพิ่มเป้าหมายใหม่
+        </h3>
+        <!-- ปุ่มกากบาทปิด Modal สีแดงเด่นชัด -->
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-red-100 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center text-xl font-bold transition-all">&times;</button>
+      </div>
+
+      <form id="goalForm" onsubmit="saveGoal(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">ชื่อรายการ (เช่น ค่าเน็ต, ค่างวดรถ)</label>
+          <input type="text" id="goalTitle" required placeholder="เช่น ค่าเน็ตบ้าน" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#E6007E]">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">ยอดเป้าหมาย (บาท)</label>
+          <input type="number" id="goalTarget" required placeholder="เช่น 590" min="1" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#E6007E]">
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium">ยกเลิก</button>
+          <button type="submit" class="flex-1 py-2.5 bg-[#E6007E] text-white rounded-xl text-sm font-semibold shadow-md shadow-pink-200">บันทึก</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-100 px-6 py-2 flex justify-around items-center z-40 text-center text-[11px] text-gray-400">
+    <a href="index.html" class="flex flex-col items-center space-y-1 hover:text-gray-600 flex-1">
+      <svg class="w-6 h-6 icon-float" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      <span>สรุป</span>
+    </a>
+    <a href="analysis.html" class="flex flex-col items-center space-y-1 hover:text-gray-600 flex-1">
+      <svg class="w-6 h-6 icon-float" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      <span>วิเคราะห์</span>
+    </a>
+    <a href="goal.html" class="flex flex-col items-center space-y-1 nav-active flex-1">
+      <svg class="w-6 h-6 icon-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      <span>เป้าหมาย</span>
+    </a>
+  </div>
+
+  <script>
+    const WORKER_URL = "https://nongjod.hay-peerapattx-co-th.workers.dev/";
+    let selectedDate = new Date();
+
+    const defaultGoals = [
+      { id: 1, title: "ค่างวดรถยนต์", target: 8500 },
+      { id: 2, title: "ค่าอินเทอร์เน็ตบ้าน", target: 590 },
+      { id: 3, title: "ค่าโทรศัพท์มือถือ", target: 399 }
+    ];
+
+    function cleanDisplayName(name) {
+      if (!name) return "User";
+      let cleaned = name.normalize("NFKD");
+      cleaned = cleaned.replace(/[^\u0E00-\u0E7F\w\s]/gi, "").trim();
+      return cleaned || "User";
+    }
+
+    function parseAmount(val) {
+      if (!val) return 0;
+      const cleanVal = String(val).replace(/,/g, '');
+      return parseFloat(cleanVal) || 0;
+    }
+
+    function getMonthKey(date) {
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const yyyy = date.getFullYear();
+      return `nongjod_goals_${mm}-${yyyy}`;
+    }
+
+    function getStoredGoals(date) {
+      const key = getMonthKey(date);
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : defaultGoals;
+    }
+
+    function saveStoredGoals(date, goals) {
+      const key = getMonthKey(date);
+      localStorage.setItem(key, JSON.stringify(goals));
+      calculateAndRender();
+    }
+
+    function onMonthChange(val) {
+      if (val) {
+        const [yyyy, mm] = val.split('-');
+        selectedDate = new Date(parseInt(yyyy), parseInt(mm) - 1, 1);
+        calculateAndRender();
+      }
+    }
+
+    function openModal() {
+      document.getElementById('goalModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('goalModal').classList.add('hidden');
+      document.getElementById('goalForm').reset();
+    }
+
+    function saveGoal(e) {
+      e.preventDefault();
+      const title = document.getElementById('goalTitle').value.trim();
+      const target = parseFloat(document.getElementById('goalTarget').value) || 0;
+
+      if (!title || target <= 0) return;
+
+      const goals = getStoredGoals(selectedDate);
+      goals.push({ id: Date.now(), title, target });
+      saveStoredGoals(selectedDate, goals);
+      closeModal();
+    }
+
+    function deleteGoal(id) {
+      if (confirm('คุณต้องการลบเป้าหมายนี้ใช่หรือไม่?')) {
+        const goals = getStoredGoals(selectedDate).filter(g => g.id !== id);
+        saveStoredGoals(selectedDate, goals);
+      }
+    }
+
+    async function fetchNetBalanceByDate(date) {
+      let cleanName = "User";
+
+      try {
+        await liff.init({ liffId: "2010951712-Th0lITIH" });
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          cleanName = cleanDisplayName(profile.displayName);
+        } else {
+          cleanName = cleanDisplayName("Peerapat");
+        }
+      } catch (e) {
+        cleanName = cleanDisplayName("Peerapat");
+      }
+
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const yyyy = date.getFullYear();
+      const targetSheet = `${cleanName}_${mm}-${yyyy}`;
+
+      try {
+        const res = await fetch(`${WORKER_URL}?sheet=${encodeURIComponent(targetSheet)}&_t=${Date.now()}`);
+        if (!res.ok) return 0;
+        const data = await res.json();
+        const items = data.items || [];
+
+        let totalInc = 0;
+        let totalExp = 0;
+
+        items.forEach(item => {
+          let amt = parseAmount(item.amount);
+          let type = String(item.type || '').trim().toLowerCase();
+
+          if (type.includes("รายรับ") || type.includes("รับ") || type.includes("income")) {
+            totalInc += amt;
+          } else if (amt > 0) {
+            totalExp += amt;
+          }
+        });
+
+        return Math.max(0, totalInc - totalExp);
+      } catch (e) {
+        return 0;
+      }
+    }
+
+    async function calculateAndRender() {
+      document.getElementById('loadingStatus').innerText = "กำลังคำนวณ...";
+      
+      const availableBalance = await fetchNetBalanceByDate(selectedDate);
+      document.getElementById('loadingStatus').innerText = "อัปเดตแล้ว";
+
+      const goals = getStoredGoals(selectedDate);
+      const container = document.getElementById('goalList');
+      container.innerHTML = '';
+
+      let remainingMoney = availableBalance;
+      let totalTarget = 0;
+      let totalFilled = 0;
+
+      if (goals.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 bg-white rounded-3xl border border-gray-100">
+            <p class="text-3xl icon-float">⏳</p>
+            <p class="text-xs text-gray-400 mt-2">ยังไม่มีรายการเป้าหมายในเดือนนี้</p>
+          </div>
+        `;
+      }
+
+      goals.forEach(goal => {
+        totalTarget += goal.target;
+
+        let filledAmount = 0;
+        if (remainingMoney > 0) {
+          if (remainingMoney >= goal.target) {
+            filledAmount = goal.target;
+            remainingMoney -= goal.target;
+          } else {
+            filledAmount = remainingMoney;
+            remainingMoney = 0;
+          }
+        }
+
+        totalFilled += filledAmount;
+        const percent = Math.min(100, Math.round((filledAmount / goal.target) * 100));
+        const isCompleted = percent >= 100;
+
+        const card = document.createElement('div');
+        card.className = "bg-white p-4 rounded-3xl shadow-sm border border-gray-100 space-y-3 relative overflow-hidden";
+        
+        card.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div class="flex items-center gap-2.5">
+              <!-- ไอคอนเปลี่ยนเป็น ⏳ (นาฬิการทราย) หากยังไม่เสร็จ และ 🏆 เมื่อเสร็จแล้ว -->
+              <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl ${isCompleted ? 'bg-amber-100 text-amber-600' : 'bg-pink-50 text-[#E6007E]'}">
+                <span class="${isCompleted ? 'icon-trophy' : 'icon-float'}">${isCompleted ? '🏆' : '⏳'}</span>
+              </div>
+              <div>
+                <h4 class="font-bold text-sm text-gray-800">${goal.title}</h4>
+                <p class="text-[11px] text-gray-400">
+                  ${isCompleted ? '🎉 จ่าย/เก็บครบแล้ว!' : `ขาดอีก ฿${(goal.target - filledAmount).toLocaleString('th-TH')}`}
+                </p>
+              </div>
+            </div>
+            <!-- ปุ่มกากบาทลบรายการ สีแดงชัดเจน ทรงกลม -->
+            <button onclick="deleteGoal(${goal.id})" class="w-8 h-8 rounded-full bg-red-100 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center text-xl font-bold transition-all shadow-sm active:scale-90" title="ลบรายการ">
+              &times;
+            </button>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs font-semibold">
+              <span class="${isCompleted ? 'text-emerald-600' : 'text-[#E6007E]'}">฿${filledAmount.toLocaleString('th-TH')}</span>
+              <span class="text-gray-400">/ ฿${goal.target.toLocaleString('th-TH')} (${percent}%)</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+              <div class="${isCompleted ? 'bg-emerald-500' : 'bg-[#E6007E]'} h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+
+      // สรุปภาพรวม
+      const overallPercent = totalTarget > 0 ? Math.min(100, Math.round((totalFilled / totalTarget) * 100)) : 0;
+      document.getElementById('netBalanceText').innerText = `฿${availableBalance.toLocaleString('th-TH')}`;
+      document.getElementById('totalTargetText').innerText = `จากเป้าหมายค่างวดรวม ฿${totalTarget.toLocaleString('th-TH')}`;
+      document.getElementById('totalPercentText').innerText = `${overallPercent}%`;
+      document.getElementById('totalProgressBar').style.width = `${overallPercent}%`;
+    }
+
+    window.onload = () => {
+      const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const yyyy = selectedDate.getFullYear();
+      document.getElementById('monthPicker').value = `${yyyy}-${mm}`;
+
+      calculateAndRender();
+    };
+  </script>
+</body>
+</html>
