@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  
+  <title>วิเคราะห์ - น้องจด</title>
+  
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; }
+    .nav-active { color: #E6007E; font-weight: 600; }
+  </style>
+</head>
+<body class="max-w-md mx-auto min-h-screen text-gray-800 pb-24">
+
+  <!-- Header -->
+  <div class="sticky top-0 bg-white z-40 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+    <button onclick="history.back()" class="text-gray-600 text-xl font-bold" aria-label="Go Back">&lt;</button>
+    <h1 class="font-bold text-lg text-gray-800">วิเคราะห์</h1>
+    <button onclick="liff.closeWindow()" class="text-gray-400 text-xl font-light" aria-label="Close Window">&times;</button>
+  </div>
+
+  <div class="p-4 space-y-4">
+    <!-- Top Segmented Control -->
+    <div class="bg-gray-100 p-1 rounded-2xl flex text-sm font-medium">
+      <button id="tabIncomeExpense" onclick="switchTab('income-expense')" class="flex-1 py-2 rounded-xl bg-white text-gray-800 shadow-sm transition-all text-center">รายรับรายจ่าย</button>
+      <button id="tabSavings" onclick="switchTab('savings')" class="flex-1 py-2 rounded-xl text-gray-500 hover:text-gray-700 transition-all text-center">เก็บออม</button>
+    </div>
+
+    <!-- Section 1: ประวัติรายรับรายจ่าย -->
+    <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="font-bold text-lg text-gray-900">ประวัติรายรับรายจ่าย</h2>
+        <select class="bg-gray-50 border border-gray-200 text-xs font-medium rounded-xl px-2.5 py-1.5 text-gray-600 focus:outline-none">
+          <option>รายเดือน</option>
+          <option>รายปี</option>
+        </select>
+      </div>
+
+      <!-- Range Navigator -->
+      <div class="flex justify-between items-center text-xs text-gray-500 font-medium px-2">
+        <button class="hover:text-gray-800">&lt;</button>
+        <span id="dateRangeText">กำลังโหลด...</span>
+        <button class="hover:text-gray-800">&gt;</button>
+      </div>
+
+      <!-- Bar Chart -->
+      <div class="h-48 relative">
+        <canvas id="barChart"></canvas>
+      </div>
+
+      <p class="text-center text-[11px] text-gray-400">เอานิ้วจิ้มบนกราฟเพื่อดูค่าได้เลย</p>
+
+      <!-- Averages -->
+      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50 text-center">
+        <div>
+          <p class="text-[11px] text-gray-500 flex items-center justify-center gap-1">
+            <span>📅</span> รายจ่ายเฉลี่ยต่อเดือน
+          </p>
+          <p id="avgExpense" class="text-lg font-bold text-[#E6007E]">฿0</p>
+        </div>
+        <div>
+          <p class="text-[11px] text-gray-500 flex items-center justify-center gap-1">
+            <span>📅</span> รายรับเฉลี่ยต่อเดือน
+          </p>
+          <p id="avgIncome" class="text-lg font-bold text-[#38BDF8]">฿0</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: รายจ่ายตามหมวด -->
+    <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="font-bold text-lg text-gray-900">รายจ่ายตามหมวด</h2>
+        <select class="bg-gray-50 border border-gray-200 text-xs font-medium rounded-xl px-2.5 py-1.5 text-gray-600 focus:outline-none">
+          <option>สะสม</option>
+          <option>เดือนนี้</option>
+        </select>
+      </div>
+
+      <!-- Pie Chart -->
+      <div class="w-60 h-60 mx-auto relative">
+        <canvas id="pieChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation Bar (เหลือ 3 เมนู) -->
+  <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-100 px-6 py-2 flex justify-around items-center z-40 text-center text-[11px] text-gray-400">
+    <!-- 1. สรุป -->
+    <a href="index.html" class="flex flex-col items-center space-y-1 hover:text-gray-600 flex-1">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      <span>สรุป</span>
+    </a>
+    <!-- 2. วิเคราะห์ -->
+    <a href="analysis.html" class="flex flex-col items-center space-y-1 nav-active flex-1">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      <span>วิเคราะห์</span>
+    </a>
+    <!-- 3. เป้าหมาย -->
+    <a href="goal.html" class="flex flex-col items-center space-y-1 hover:text-gray-600 flex-1">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      <span>เป้าหมาย</span>
+    </a>
+  </div>
+
+  <script>
+    const WORKER_URL = "https://nongjod.hay-peerapattx-co-th.workers.dev/";
+    let barChartInstance = null;
+    let pieChartInstance = null;
+
+    function cleanDisplayName(name) {
+      if (!name) return "User";
+      let cleaned = name.normalize("NFKD");
+      cleaned = cleaned.replace(/[^\u0E00-\u0E7F\w\s]/gi, "").trim();
+      return cleaned || "User";
+    }
+
+    function switchTab(tab) {
+      const btn1 = document.getElementById('tabIncomeExpense');
+      const btn2 = document.getElementById('tabSavings');
+      if (tab === 'income-expense') {
+        btn1.className = "flex-1 py-2 rounded-xl bg-white text-gray-800 shadow-sm transition-all text-center font-medium";
+        btn2.className = "flex-1 py-2 rounded-xl text-gray-500 hover:text-gray-700 transition-all text-center font-medium";
+      } else {
+        btn2.className = "flex-1 py-2 rounded-xl bg-white text-gray-800 shadow-sm transition-all text-center font-medium";
+        btn1.className = "flex-1 py-2 rounded-xl text-gray-500 hover:text-gray-700 transition-all text-center font-medium";
+      }
+    }
+
+    function parseAmount(val) {
+      if (!val) return 0;
+      const cleanVal = String(val).replace(/,/g, '');
+      return parseFloat(cleanVal) || 0;
+    }
+
+    function renderBarChart(labels, expenseData, incomeData) {
+      const ctx = document.getElementById('barChart').getContext('2d');
+      if (barChartInstance) barChartInstance.destroy();
+
+      barChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'รายจ่าย',
+              data: expenseData,
+              backgroundColor: '#E6007E',
+              borderRadius: 6,
+              barThickness: 14
+            },
+            {
+              label: 'รายรับ',
+              data: incomeData,
+              backgroundColor: '#38BDF8',
+              borderRadius: 6,
+              barThickness: 14
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { font: { family: 'Prompt', size: 12 }, usePointStyle: true, boxWidth: 8 }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: 'Prompt', size: 10 } } },
+            y: { display: false, grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function renderPieChart(categories, amounts) {
+      const ctx = document.getElementById('pieChart').getContext('2d');
+      if (pieChartInstance) pieChartInstance.destroy();
+
+      const colors = ['#E6007E', '#38BDF8', '#FBBF24', '#10B981', '#9333EA', '#F472B6', '#4B5563', '#581C87'];
+
+      pieChartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: categories.length ? categories : ['ไม่มีข้อมูล'],
+          datasets: [{
+            data: amounts.length ? amounts : [1],
+            backgroundColor: categories.length ? colors.slice(0, categories.length) : ['#E5E7EB'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { font: { family: 'Prompt', size: 11 }, usePointStyle: true, boxWidth: 8 }
+            }
+          }
+        }
+      });
+    }
+
+    async function fetchSheetData(sheetName) {
+      try {
+        const res = await fetch(`${WORKER_URL}?sheet=${encodeURIComponent(sheetName)}&_t=${Date.now()}`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.items || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    async function loadAnalysisData() {
+      let cleanName = "User";
+
+      try {
+        await liff.init({ liffId: "2010951712-Th0lITIH" });
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          cleanName = cleanDisplayName(profile.displayName);
+        } else {
+          cleanName = cleanDisplayName("Peerapat");
+        }
+      } catch (e) {
+        cleanName = cleanDisplayName("Peerapat");
+      }
+
+      const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+      const now = new Date();
+      
+      let monthLabels = [];
+      let monthlyExpenses = [];
+      let monthlyIncomes = [];
+      let allCategoriesMap = {};
+
+      for (let i = 5; i >= 0; i--) {
+        let d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        let mm = String(d.getMonth() + 1).padStart(2, '0');
+        let yyyy = d.getFullYear();
+        
+        monthLabels.push(`${thaiMonths[d.getMonth()]}`);
+        
+        let targetSheet = `${cleanName}_${mm}-${yyyy}`;
+        let items = await fetchSheetData(targetSheet);
+
+        let totalInc = 0;
+        let totalExp = 0;
+
+        if (Array.isArray(items)) {
+          items.forEach(item => {
+            let amt = parseAmount(item.amount);
+            let type = String(item.type || '').trim().toLowerCase();
+
+            if (type.includes("รายรับ") || type.includes("รับ") || type.includes("income")) {
+              totalInc += amt;
+            } else if (amt > 0) {
+              totalExp += amt;
+              let cat = (item.category || item.note || 'อื่นๆ').trim();
+              allCategoriesMap[cat] = (allCategoriesMap[cat] || 0) + amt;
+            }
+          });
+        }
+
+        monthlyIncomes.push(totalInc);
+        monthlyExpenses.push(totalExp);
+      }
+
+      renderBarChart(monthLabels, monthlyExpenses, monthlyIncomes);
+
+      let activeMonthsCount = 0;
+      for (let i = 0; i < 6; i++) {
+        if (monthlyExpenses[i] > 0 || monthlyIncomes[i] > 0) {
+          activeMonthsCount++;
+        }
+      }
+      if (activeMonthsCount === 0) activeMonthsCount = 1;
+
+      let sumExpense = monthlyExpenses.reduce((a, b) => a + b, 0);
+      let sumIncome = monthlyIncomes.reduce((a, b) => a + b, 0);
+
+      let avgExp = Math.round(sumExpense / activeMonthsCount);
+      let avgInc = Math.round(sumIncome / activeMonthsCount);
+
+      document.getElementById('avgExpense').innerText = `฿${avgExp.toLocaleString('th-TH')}`;
+      document.getElementById('avgIncome').innerText = `฿${avgInc.toLocaleString('th-TH')}`;
+      
+      let startMonth = monthLabels[0];
+      let endMonth = monthLabels[5];
+      let currentYearThai = String(now.getFullYear() + 543).slice(-2);
+      document.getElementById('dateRangeText').innerText = `${startMonth} - ${endMonth} ${currentYearThai}`;
+
+      const pieCategories = Object.keys(allCategoriesMap);
+      const pieAmounts = Object.values(allCategoriesMap);
+      renderPieChart(pieCategories, pieAmounts);
+    }
+
+    window.onload = loadAnalysisData;
+  </script>
+</body>
+</html>
