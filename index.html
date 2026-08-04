@@ -3,100 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-  
   <title>สรุปยอด - น้องจด</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
-
   <style>
     body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; }
-    input, select, textarea { font-size: 14px !important; }
-
-    .flatpickr-calendar {
-      font-family: 'Prompt', sans-serif !important;
-      border-radius: 1.25rem !important;
-      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.25) !important;
-      border: 1px solid #FCE7F3 !important;
-      background: #ffffff !important;
-      position: fixed !important;
-      top: 50% !important;
-      left: 50% !important;
-      transform: translate(-50%, -50%) !important;
-      margin: 0 !important;
-      z-index: 99999 !important;
-    }
-
-    .flatpickr-months {
-      background: #E6007E !important;
-      border-top-left-radius: 1.25rem !important;
-      border-top-right-radius: 1.25rem !important;
-      padding: 6px 0 !important;
-    }
-    .flatpickr-months .flatpickr-month,
-    .flatpickr-months .flatpickr-prev-month,
-    .flatpickr-months .flatpickr-next-month {
-      color: #ffffff !important;
-      fill: #ffffff !important;
-    }
-    .flatpickr-current-month .flatpickr-monthDropdown-months,
-    .flatpickr-current-month input.cur-year {
-      font-weight: 700 !important;
-      color: #ffffff !important;
-    }
-
-    span.flatpickr-weekday {
-      background: #E6007E !important;
-      color: #ffffff !important;
-      font-weight: 600 !important;
-    }
-
-    .flatpickr-day.selected, 
-    .flatpickr-day.startRange, 
-    .flatpickr-day.endRange,
-    .flatpickr-day.selected.inRange,
-    .flatpickr-day.startRange.inRange,
-    .flatpickr-day.endRange.inRange {
-      background: #E6007E !important;
-      border-color: #E6007E !important;
-      color: #ffffff !important;
-      font-weight: bold !important;
-    }
-    .flatpickr-day.inRange {
-      background: #FCE7F3 !important;
-      border-color: #FCE7F3 !important;
-      box-shadow: -5px 0 0 #FCE7F3, 5px 0 0 #FCE7F3 !important;
-      color: #DB2777 !important;
-    }
-    .flatpickr-day:hover {
-      background: #FBCFE8 !important;
-    }
-
-    #calendarBackdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(46, 16, 101, 0.4);
-      backdrop-filter: blur(2px);
-      z-index: 99990;
-      display: none;
-    }
+    input, select, textarea { font-size: 16px !important; }
   </style>
 </head>
 <body class="p-4 text-gray-800 max-w-md mx-auto min-h-screen">
 
-  <div id="calendarBackdrop" onclick="closeCalendarPicker()"></div>
-
   <!-- Header Profile -->
   <div class="flex items-center space-x-3 bg-white p-4 rounded-2xl shadow-sm mb-4 border border-pink-100">
-    <img id="userPicture" class="w-12 h-12 rounded-full border-2 border-pink-400 bg-pink-50 object-cover" src="https://via.placeholder.com/150" alt="Profile">
+    <img id="userPicture" class="w-12 h-12 rounded-full border-2 border-pink-400 bg-pink-50 object-cover" src="https://via.placeholder.com/150" alt="Profile" crossorigin="anonymous">
     <div>
       <h2 id="userName" class="font-bold text-lg leading-tight text-gray-800">กำลังโหลด...</h2>
     </div>
@@ -106,14 +27,13 @@
   <div class="bg-white p-5 rounded-2xl shadow-sm mb-4 border border-pink-100">
     <div class="flex justify-between items-center mb-4">
       <h3 class="font-bold text-lg text-purple-900">📊 สรุปยอด</h3>
-      
       <div class="relative">
-        <button id="calendarBtn" class="bg-pink-50 border border-pink-200 text-pink-600 font-semibold text-xs rounded-xl px-3 py-1.5 focus:outline-none flex items-center space-x-1.5 hover:bg-pink-100 active:scale-95 transition">
-          <span>📅</span>
-          <span id="calendarLabel">เลือกวันที่</span>
-          <span class="text-[10px]">▼</span>
-        </button>
-        <input type="text" id="datePickerInput" class="hidden">
+        <select id="timeFilter" onchange="applyFilter()" class="bg-pink-50 border border-pink-200 text-pink-600 font-semibold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-pink-300 cursor-pointer">
+          <option value="daily">📅 รายวัน</option>
+          <option value="weekly">📅 รายสัปดาห์</option>
+          <option value="monthly">📅 รายเดือน</option>
+          <option value="all" selected>📅 ทั้งหมด</option>
+        </select>
       </div>
     </div>
 
@@ -153,7 +73,7 @@
   <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 border border-pink-100">
     <div class="flex justify-between items-center mb-4">
       <h3 class="font-bold text-lg text-gray-900">รายการล่าสุด</h3>
-      <button onclick="clearDateFilter()" class="text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-200">ดูทั้งหมด</button>
+      <button class="text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-200">ดูทั้งหมด</button>
     </div>
 
     <div id="itemList" class="space-y-4 max-h-[500px] overflow-y-auto pr-1">
@@ -199,8 +119,8 @@
       </div>
 
       <div class="flex space-x-2 mt-6">
-        <button id="saveBtn" onclick="saveItem()" class="flex-[2] py-3 bg-[#E6007E] hover:bg-pink-700 text-white font-semibold rounded-xl shadow-md transition">บันทึก</button>
-        <button id="deleteBtn" onclick="deleteItem()" class="flex-1 py-3 bg-red-50 hover:bg-red-100 text-red-500 font-semibold rounded-xl transition">🗑️ ลบ</button>
+        <button onclick="saveItem()" class="flex-[2] py-3 bg-[#E6007E] hover:bg-pink-700 text-white font-semibold rounded-xl shadow-md transition">บันทึก</button>
+        <button onclick="deleteItem()" class="flex-1 py-3 bg-red-50 hover:bg-red-100 text-red-500 font-semibold rounded-xl transition">🗑️ ลบ</button>
       </div>
     </div>
   </div>
@@ -211,13 +131,11 @@
     let myChart = null;
     let rawAllItems = [];
     let targetSheetName = "";
-    let fpInstance = null;
-    let filterStartDate = null;
-    let filterEndDate = null;
 
     function cleanDisplayName(name) {
       if (!name) return "User";
-      let cleaned = name.replace(/[^\u0E00-\u0E7F\a-zA-Z0-9\s]/g, "").trim();
+      let cleaned = name.normalize("NFKD");
+      cleaned = cleaned.replace(/[^\u0E00-\u0E7F\w\s]/gi, "").trim();
       return cleaned || "User";
     }
 
@@ -228,35 +146,7 @@
       return `${cleanName}_${mm}-${yyyy}`;
     }
 
-    function loadSavedDateFilter() {
-      const savedStart = localStorage.getItem("nongjod_filter_start");
-      const savedEnd = localStorage.getItem("nongjod_filter_end");
-      
-      if (savedStart && savedEnd) {
-        filterStartDate = new Date(savedStart);
-        filterEndDate = new Date(savedEnd);
-        
-        if (filterStartDate.toDateString() === filterEndDate.toDateString()) {
-          document.getElementById("calendarLabel").innerText = formatThaiShortDate(filterStartDate);
-        } else {
-          document.getElementById("calendarLabel").innerText = `${formatThaiShortDate(filterStartDate)} - ${formatThaiShortDate(filterEndDate)}`;
-        }
-      }
-    }
-
-    function saveDateFilter(startDate, endDate) {
-      if (startDate && endDate) {
-        localStorage.setItem("nongjod_filter_start", startDate.toISOString());
-        localStorage.setItem("nongjod_filter_end", endDate.toISOString());
-      } else {
-        localStorage.removeItem("nongjod_filter_start");
-        localStorage.removeItem("nongjod_filter_end");
-      }
-    }
-
     async function main() {
-      loadSavedDateFilter();
-      initCalendarPicker();
       try {
         await liff.init({ liffId: "2010951712-Th0lITIH" });
         
@@ -282,77 +172,9 @@
       }
     }
 
-    function initCalendarPicker() {
-      flatpickr.localize(flatpickr.l10ns.th);
-      
-      const defaultDates = (filterStartDate && filterEndDate) ? [filterStartDate, filterEndDate] : [];
-
-      fpInstance = flatpickr("#datePickerInput", {
-        mode: "range",
-        dateFormat: "Y-m-d",
-        locale: "th",
-        disableMobile: true,
-        defaultDate: defaultDates,
-        onOpen: function(selectedDates, dateStr, instance) {
-          document.getElementById("calendarBackdrop").style.display = "block";
-          if (filterStartDate && filterEndDate) {
-            instance.setDate([filterStartDate, filterEndDate], false);
-          }
-        },
-        onClose: function() {
-          document.getElementById("calendarBackdrop").style.display = "none";
-        },
-        onChange: function(selectedDates, dateStr, instance) {
-          if (selectedDates.length === 1) {
-            filterStartDate = new Date(selectedDates[0]);
-            filterStartDate.setHours(0,0,0,0);
-            filterEndDate = new Date(selectedDates[0]);
-            filterEndDate.setHours(23,59,59,999);
-            
-            document.getElementById("calendarLabel").innerText = formatThaiShortDate(selectedDates[0]);
-            saveDateFilter(filterStartDate, filterEndDate);
-            applyFilter();
-          } else if (selectedDates.length === 2) {
-            filterStartDate = new Date(selectedDates[0]);
-            filterStartDate.setHours(0,0,0,0);
-            
-            filterEndDate = new Date(selectedDates[1]);
-            filterEndDate.setHours(23,59,59,999);
-            
-            if (filterStartDate.toDateString() === filterEndDate.toDateString()) {
-              document.getElementById("calendarLabel").innerText = formatThaiShortDate(filterStartDate);
-            } else {
-              document.getElementById("calendarLabel").innerText = `${formatThaiShortDate(filterStartDate)} - ${formatThaiShortDate(filterEndDate)}`;
-            }
-            
-            saveDateFilter(filterStartDate, filterEndDate);
-            applyFilter();
-            instance.close();
-          }
-        }
-      });
-
-      document.getElementById("calendarBtn").addEventListener("click", function() {
-        fpInstance.open();
-      });
-    }
-
-    function closeCalendarPicker() {
-      if (fpInstance) fpInstance.close();
-    }
-
-    function clearDateFilter() {
-      if (fpInstance) fpInstance.clear();
-      filterStartDate = null;
-      filterEndDate = null;
-      saveDateFilter(null, null);
-      document.getElementById("calendarLabel").innerText = "เลือกวันที่";
-      applyFilter();
-    }
-
     async function fetchData() {
       try {
-        const fetchUrl = targetSheetName ? `${WORKER_URL}?sheet=${encodeURIComponent(targetSheetName)}&_t=${Date.now()}` : `${WORKER_URL}?_t=${Date.now()}`;
+        const fetchUrl = targetSheetName ? `${WORKER_URL}?sheet=${encodeURIComponent(targetSheetName)}` : WORKER_URL;
         const res = await fetch(fetchUrl);
         const data = await res.json();
         
@@ -370,12 +192,12 @@
       return parseFloat(cleanVal) || 0;
     }
 
-    // ✅ ปรับปรุงการดึง Object วันที่เพื่อป้องกันเคสปีผิดปกติ เช่น 026
+    // แปลงข้อความวันที่ให้กลายเป็น Date Object ที่สมบูรณ์
     function getItemDateObj(dateStr) {
       if (!dateStr) return null;
       try {
         let cleanStr = String(dateStr).trim().replace('T', ' ');
-        let [datePart, timePart] = cleanStr.split(' ');
+        let datePart = cleanStr.split(' ')[0];
         let day, month, year;
 
         if (datePart.includes('/')) {
@@ -385,7 +207,7 @@
           year = parseInt(parts[2], 10);
         } else if (datePart.includes('-')) {
           const parts = datePart.split('-');
-          if (parts[0].length <= 4) {
+          if (parts[0].length === 4) {
             year = parseInt(parts[0], 10);
             month = parseInt(parts[1], 10);
             day = parseInt(parts[2], 10);
@@ -397,38 +219,25 @@
         }
 
         if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
-        
-        if (year < 100) year += 2000;
         if (year > 2400) year -= 543;
 
-        let hours = 0, minutes = 0, seconds = 0;
-        if (timePart) {
-          const tParts = timePart.split(':');
-          hours = parseInt(tParts[0], 10) || 0;
-          minutes = parseInt(tParts[1], 10) || 0;
-          seconds = parseInt(tParts[2], 10) || 0;
-        }
-
-        return new Date(year, month - 1, day, hours, minutes, seconds);
+        return new Date(year, month - 1, day);
       } catch (e) {
         return null;
       }
     }
 
+    // แปลงวันที่เป็นตัวย่อภาษาไทย เช่น "4 ส.ค."
     function formatThaiShortDate(dateObj) {
       if (!dateObj) return "ไม่ระบุวันที่";
       const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
       return `${dateObj.getDate()} ${months[dateObj.getMonth()]}`;
     }
 
-    function getTimeString(dateObj, rawStr) {
-      if (dateObj) {
-        const hh = String(dateObj.getHours()).padStart(2, '0');
-        const mm = String(dateObj.getMinutes()).padStart(2, '0');
-        return `${hh}:${mm} น.`;
-      }
-      if (!rawStr) return "00:00 น.";
-      let cleanStr = String(rawStr).trim().replace('T', ' ');
+    // แปลงข้อความเวลา เช่น "14:09"
+    function getTimeString(dateStr) {
+      if (!dateStr) return "00:00 น.";
+      let cleanStr = String(dateStr).trim().replace('T', ' ');
       let parts = cleanStr.split(' ');
       if (parts[1]) {
         let timeParts = parts[1].split(':');
@@ -438,17 +247,26 @@
     }
 
     function applyFilter() {
-      let filteredItems = rawAllItems.filter(item => {
-        if (!filterStartDate && !filterEndDate) return true;
+      const filterType = document.getElementById("timeFilter").value;
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
+      let filteredItems = rawAllItems.filter(item => {
+        if (filterType === 'all') return true;
+        
         const itemDate = getItemDateObj(item.date);
         if (!itemDate) return true;
 
-        const itemTime = itemDate.getTime();
+        const itemDateTime = new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate()).getTime();
 
-        if (filterStartDate && itemTime < filterStartDate.getTime()) return false;
-        if (filterEndDate && itemTime > filterEndDate.getTime()) return false;
-
+        if (filterType === 'daily') {
+          return itemDateTime === todayStart;
+        } else if (filterType === 'weekly') {
+          const sevenDaysAgo = todayStart - (6 * 24 * 60 * 60 * 1000);
+          return itemDateTime >= sevenDaysAgo && itemDateTime <= todayStart;
+        } else if (filterType === 'monthly') {
+          return itemDate.getFullYear() === now.getFullYear() && itemDate.getMonth() === now.getMonth();
+        }
         return true;
       });
 
@@ -516,59 +334,30 @@
         return;
       }
 
+      // 1. จัดกลุ่ม (Group) ตามวันที่ เช่น "4 ส.ค."
       const grouped = {};
-      const dateOrder = [];
-
       items.forEach(item => {
         const itemDateObj = getItemDateObj(item.date);
-        let dateKey = itemDateObj ? formatThaiShortDate(itemDateObj) : String(item.date || "ไม่ระบุวันที่").split(' ')[0];
-        const timeKey = getTimeString(itemDateObj, item.date);
+        const dateKey = itemDateObj ? formatThaiShortDate(itemDateObj) : "ไม่ระบุวันที่";
+        const timeKey = getTimeString(item.date);
 
         if (!grouped[dateKey]) {
           grouped[dateKey] = [];
-          dateOrder.push(dateKey);
         }
         grouped[dateKey].push({ ...item, timeOnly: timeKey });
       });
 
+      // 2. สร้าง HTML แยกหัวข้อวันที่
       let html = "";
-      dateOrder.forEach(dateTitle => {
-        const groupItems = grouped[dateTitle];
-        
-        let dayExpense = 0;
-        let dayIncome = 0;
-
-        groupItems.forEach(item => {
-          const amt = parseAmount(item.amount);
-          const itemType = String(item.type || '');
-          if (itemType.includes("รายรับ") || itemType.includes("รับ")) {
-            dayIncome += amt;
-          } else {
-            dayExpense += amt;
-          }
-        });
-
-        const netDay = dayIncome - dayExpense;
-        let sumText = "";
-        let sumColorClass = "text-pink-600";
-
-        if (netDay < 0) {
-          sumText = `ใช้ไป -฿${Math.abs(netDay).toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-          sumColorClass = "text-pink-600";
-        } else if (netDay > 0) {
-          sumText = `รับสุทธิ +฿${netDay.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-          sumColorClass = "text-emerald-600";
-        } else {
-          sumText = `฿0`;
-          sumColorClass = "text-gray-400";
-        }
-
+      for (const [dateTitle, groupItems] of Object.entries(grouped)) {
         html += `
           <div class="mb-4">
-            <div class="flex justify-between items-center pb-1 mb-2 border-b border-pink-100">
-              <span class="text-xs font-bold text-gray-700">${dateTitle}</span>
-              <span class="text-xs font-bold ${sumColorClass}">${sumText}</span>
+            <!-- หัวข้อวันที่ (แสดงเฉพาะ "วัน เดือน" เช่น 4 ส.ค.) -->
+            <div class="pb-1 mb-2 border-b border-gray-100">
+              <span class="text-xs font-semibold text-gray-500">${dateTitle}</span>
             </div>
+
+            <!-- รายการของวันนั้นๆ -->
             <div class="space-y-2">
         `;
 
@@ -606,7 +395,7 @@
             </div>
           </div>
         `;
-      });
+      }
 
       listEl.innerHTML = html;
     }
@@ -614,16 +403,48 @@
     function parseDateToInput(dateStr) {
       if (!dateStr) return '';
       try {
-        const dateObj = getItemDateObj(dateStr);
-        if (!dateObj) return '';
+        let str = String(dateStr).trim().replace('T', ' ');
+        let timePart = '00:00';
 
-        const yyyy = dateObj.getFullYear();
-        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const dd = String(dateObj.getDate()).padStart(2, '0');
-        const hh = String(dateObj.getHours()).padStart(2, '0');
-        const min = String(dateObj.getMinutes()).padStart(2, '0');
+        if (str.includes(' ')) {
+          const parts = str.split(/\s+/);
+          timePart = parts[parts.length - 1];
+          if (timePart.includes(':')) {
+            str = parts.slice(0, -1).join(' ');
+          } else {
+            timePart = '00:00';
+          }
+        }
 
-        return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+        let day, month, year;
+        if (str.includes('/')) {
+          const parts = str.split('/');
+          day = parseInt(parts[0], 10);
+          month = parseInt(parts[1], 10);
+          year = parseInt(parts[2], 10);
+        } else if (str.includes('-')) {
+          const parts = str.split('-');
+          if (parts[0].length === 4) {
+            year = parseInt(parts[0], 10);
+            month = parseInt(parts[1], 10);
+            day = parseInt(parts[2], 10);
+          } else {
+            day = parseInt(parts[0], 10);
+            month = parseInt(parts[1], 10);
+            year = parseInt(parts[2], 10);
+          }
+        }
+
+        if (isNaN(day) || isNaN(month) || isNaN(year)) return '';
+        if (year > 2400) year -= 543;
+
+        const dd = String(day).padStart(2, '0');
+        const mm = String(month).padStart(2, '0');
+        const timeParts = timePart.split(':');
+        const hh = (timeParts[0] || '00').padStart(2, '0');
+        const min = (timeParts[1] || '00').padStart(2, '0');
+
+        return `${year}-${mm}-${dd}T${hh}:${min}`;
       } catch (e) {
         return '';
       }
@@ -657,10 +478,6 @@
     }
 
     async function saveItem() {
-      const saveBtn = document.getElementById("saveBtn");
-      saveBtn.disabled = true;
-      saveBtn.innerText = "กำลังบันทึก...";
-
       const rowIndex = document.getElementById("editRowIndex").value;
       const category = document.getElementById("editCategory").value;
       const amount = parseFloat(document.getElementById("editAmount").value) || 0;
@@ -679,7 +496,7 @@
       }
 
       try {
-        const res = await fetch(WORKER_URL, {
+        await fetch(WORKER_URL, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -692,29 +509,19 @@
             sheetName: targetSheetName
           })
         });
-        if (!res.ok) throw new Error("การบันทึกขัดข้อง");
         closeModal();
         await fetchData();
       } catch (e) {
         console.error("Save Error:", e);
-        alert("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-      } finally {
-        saveBtn.disabled = false;
-        saveBtn.innerText = "บันทึก";
       }
     }
 
     async function deleteItem() {
       if (!confirm("คุณต้องการลบรายการนี้ใช่หรือไม่?")) return;
-      
-      const deleteBtn = document.getElementById("deleteBtn");
-      deleteBtn.disabled = true;
-      deleteBtn.innerText = "กำลังลบ...";
-
       const rowIndex = document.getElementById("editRowIndex").value;
 
       try {
-        const res = await fetch(WORKER_URL, {
+        await fetch(WORKER_URL, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -722,15 +529,10 @@
             sheetName: targetSheetName
           })
         });
-        if (!res.ok) throw new Error("การลบขัดข้อง");
         closeModal();
         await fetchData();
       } catch (e) {
         console.error("Delete Error:", e);
-        alert("ลบรายการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-      } finally {
-        deleteBtn.disabled = false;
-        deleteBtn.innerText = "🗑️ ลบ";
       }
     }
 
