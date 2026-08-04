@@ -8,9 +8,20 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- [เพิ่ม] Flatpickr CSS & JS สำหรับปฏิทิน Popup -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
+
   <style>
     body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; }
-    input, select, textarea { font-size: 16px !important; }
+    input, select, textarea { font-size: 14px !important; }
+    /* ตกแต่ง Flatpickr ให้เข้ากับธีม */
+    .flatpickr-calendar { font-family: 'Prompt', sans-serif !important; border-radius: 1rem !important; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important; }
+    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange { background: #E6007E !important; border-color: #E6007E !important; }
+    .flatpickr-day.inRange { background: #FCE7F3 !important; border-color: #FCE7F3 !important; box-shadow: none !important; }
   </style>
 </head>
 <body class="p-4 text-gray-800 max-w-md mx-auto min-h-screen">
@@ -27,13 +38,16 @@
   <div class="bg-white p-5 rounded-2xl shadow-sm mb-4 border border-pink-100">
     <div class="flex justify-between items-center mb-4">
       <h3 class="font-bold text-lg text-purple-900">📊 สรุปยอด</h3>
+      
+      <!-- [ปุ่มเลือกปฏิทินใหม่] กดแล้วเด้ง Pop-up ปฏิทินแบบในรูป -->
       <div class="relative">
-        <select id="timeFilter" onchange="applyFilter()" class="bg-pink-50 border border-pink-200 text-pink-600 font-semibold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-pink-300 cursor-pointer">
-          <option value="daily">📅 รายวัน</option>
-          <option value="weekly">📅 รายสัปดาห์</option>
-          <option value="monthly">📅 รายเดือน</option>
-          <option value="all" selected>📅 ทั้งหมด</option>
-        </select>
+        <button id="calendarBtn" class="bg-pink-50 border border-pink-200 text-pink-600 font-semibold text-xs rounded-xl px-3 py-1.5 focus:outline-none flex items-center space-x-1.5 hover:bg-pink-100 active:scale-95 transition">
+          <span>📅</span>
+          <span id="calendarLabel">เลือกวันที่</span>
+          <span class="text-[10px]">▼</span>
+        </button>
+        <!-- hidden input สำหรับเก็บค่าจาก Flatpickr -->
+        <input type="text" id="datePickerInput" class="hidden">
       </div>
     </div>
 
@@ -131,6 +145,9 @@
     let myChart = null;
     let rawAllItems = [];
     let targetSheetName = "";
+    let fpInstance = null;
+    let filterStartDate = null;
+    let filterEndDate = null;
 
     function cleanDisplayName(name) {
       if (!name) return "User";
@@ -147,6 +164,7 @@
     }
 
     async function main() {
+      initCalendarPicker();
       try {
         await liff.init({ liffId: "2010951712-Th0lITIH" });
         
@@ -172,6 +190,42 @@
       }
     }
 
+    // [ฟังก์ชันสร้างปฏิทิน Pop-up]
+    function initCalendarPicker() {
+      flatpickr.localize(flatpickr.l10ns.th);
+      
+      fpInstance = flatpickr("#datePickerInput", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        locale: "th",
+        onChange: function(selectedDates, dateStr, instance) {
+          if (selectedDates.length === 1) {
+            filterStartDate = new Date(selectedDates[0].setHours(0,0,0,0));
+            filterEndDate = new Date(selectedDates[0].setHours(23,59,59,999));
+            document.getElementById("calendarLabel").innerText = formatThaiShortDate(selectedDates[0]);
+            applyFilter();
+          } else if (selectedDates.length === 2) {
+            filterStartDate = new Date(selectedDates[0].setHours(0,0,0,0));
+            filterEndDate = new Date(selectedDates[1].setHours(23,59,59,999));
+            document.getElementById("calendarLabel").innerText = `${formatThaiShortDate(selectedDates[0])} - ${formatThaiShortDate(selectedDates[1])}`;
+            applyFilter();
+          }
+        },
+        onClose: function(selectedDates) {
+          if (selectedDates.length === 0) {
+            filterStartDate = null;
+            filterEndDate = null;
+            document.getElementById("calendarLabel").innerText = "ทั้งหมด";
+            applyFilter();
+          }
+        }
+      });
+
+      document.getElementById("calendarBtn").addEventListener("click", function() {
+        fpInstance.open();
+      });
+    }
+
     async function fetchData() {
       try {
         const fetchUrl = targetSheetName ? `${WORKER_URL}?sheet=${encodeURIComponent(targetSheetName)}` : WORKER_URL;
@@ -192,12 +246,11 @@
       return parseFloat(cleanVal) || 0;
     }
 
-    // แปลงข้อความวันที่ให้กลายเป็น Date Object ที่สมบูรณ์
     function getItemDateObj(dateStr) {
       if (!dateStr) return null;
       try {
         let cleanStr = String(dateStr).trim().replace('T', ' ');
-        let datePart = cleanStr.split(' ')[0];
+        let [datePart, timePart] = cleanStr.split(' ');
         let day, month, year;
 
         if (datePart.includes('/')) {
@@ -221,23 +274,34 @@
         if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
         if (year > 2400) year -= 543;
 
-        return new Date(year, month - 1, day);
+        let hours = 0, minutes = 0, seconds = 0;
+        if (timePart) {
+          const tParts = timePart.split(':');
+          hours = parseInt(tParts[0], 10) || 0;
+          minutes = parseInt(tParts[1], 10) || 0;
+          seconds = parseInt(tParts[2], 10) || 0;
+        }
+
+        return new Date(year, month - 1, day, hours, minutes, seconds);
       } catch (e) {
         return null;
       }
     }
 
-    // แปลงวันที่เป็นตัวย่อภาษาไทย เช่น "4 ส.ค."
     function formatThaiShortDate(dateObj) {
       if (!dateObj) return "ไม่ระบุวันที่";
       const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
       return `${dateObj.getDate()} ${months[dateObj.getMonth()]}`;
     }
 
-    // แปลงข้อความเวลา เช่น "14:09"
-    function getTimeString(dateStr) {
-      if (!dateStr) return "00:00 น.";
-      let cleanStr = String(dateStr).trim().replace('T', ' ');
+    function getTimeString(dateObj, rawStr) {
+      if (dateObj) {
+        const hh = String(dateObj.getHours()).padStart(2, '0');
+        const mm = String(dateObj.getMinutes()).padStart(2, '0');
+        return `${hh}:${mm} น.`;
+      }
+      if (!rawStr) return "00:00 น.";
+      let cleanStr = String(rawStr).trim().replace('T', ' ');
       let parts = cleanStr.split(' ');
       if (parts[1]) {
         let timeParts = parts[1].split(':');
@@ -247,26 +311,17 @@
     }
 
     function applyFilter() {
-      const filterType = document.getElementById("timeFilter").value;
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-
       let filteredItems = rawAllItems.filter(item => {
-        if (filterType === 'all') return true;
-        
+        if (!filterStartDate && !filterEndDate) return true;
+
         const itemDate = getItemDateObj(item.date);
         if (!itemDate) return true;
 
-        const itemDateTime = new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate()).getTime();
+        const itemTime = itemDate.getTime();
 
-        if (filterType === 'daily') {
-          return itemDateTime === todayStart;
-        } else if (filterType === 'weekly') {
-          const sevenDaysAgo = todayStart - (6 * 24 * 60 * 60 * 1000);
-          return itemDateTime >= sevenDaysAgo && itemDateTime <= todayStart;
-        } else if (filterType === 'monthly') {
-          return itemDate.getFullYear() === now.getFullYear() && itemDate.getMonth() === now.getMonth();
-        }
+        if (filterStartDate && itemTime < filterStartDate.getTime()) return false;
+        if (filterEndDate && itemTime > filterEndDate.getTime()) return false;
+
         return true;
       });
 
@@ -334,30 +389,29 @@
         return;
       }
 
-      // 1. จัดกลุ่ม (Group) ตามวันที่ เช่น "4 ส.ค."
       const grouped = {};
+      const dateOrder = [];
+
       items.forEach(item => {
         const itemDateObj = getItemDateObj(item.date);
         const dateKey = itemDateObj ? formatThaiShortDate(itemDateObj) : "ไม่ระบุวันที่";
-        const timeKey = getTimeString(item.date);
+        const timeKey = getTimeString(itemDateObj, item.date);
 
         if (!grouped[dateKey]) {
           grouped[dateKey] = [];
+          dateOrder.push(dateKey);
         }
         grouped[dateKey].push({ ...item, timeOnly: timeKey });
       });
 
-      // 2. สร้าง HTML แยกหัวข้อวันที่
       let html = "";
-      for (const [dateTitle, groupItems] of Object.entries(grouped)) {
+      dateOrder.forEach(dateTitle => {
+        const groupItems = grouped[dateTitle];
         html += `
           <div class="mb-4">
-            <!-- หัวข้อวันที่ (แสดงเฉพาะ "วัน เดือน" เช่น 4 ส.ค.) -->
             <div class="pb-1 mb-2 border-b border-gray-100">
               <span class="text-xs font-semibold text-gray-500">${dateTitle}</span>
             </div>
-
-            <!-- รายการของวันนั้นๆ -->
             <div class="space-y-2">
         `;
 
@@ -395,7 +449,7 @@
             </div>
           </div>
         `;
-      }
+      });
 
       listEl.innerHTML = html;
     }
