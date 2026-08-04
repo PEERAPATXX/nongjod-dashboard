@@ -132,7 +132,6 @@
     let rawAllItems = [];
     let targetSheetName = "";
 
-    // ฟังก์ชันคลีนชื่ออักษรพิเศษ/ช่องว่าง ให้ตรงกับ Worker
     function cleanDisplayName(name) {
       if (!name) return "User";
       let cleaned = name.normalize("NFKD");
@@ -140,7 +139,6 @@
       return cleaned || "User";
     }
 
-    // สร้างชื่อชีตตามเดือนปัจจุบัน: ชื่อไลน์_MM-YYYY
     function getMonthYearSheetName(cleanName) {
       const now = new Date();
       const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -176,7 +174,6 @@
 
     async function fetchData() {
       try {
-        // ส่ง parameter sheet เพื่อไปเปิดชีตเดือนปัจจุบันแบบตรงเป๊ะ
         const fetchUrl = targetSheetName ? `${WORKER_URL}?sheet=${encodeURIComponent(targetSheetName)}` : WORKER_URL;
         const res = await fetch(fetchUrl);
         const data = await res.json();
@@ -185,7 +182,7 @@
         applyFilter();
       } catch (e) {
         console.error("Fetch Data Error:", e);
-        document.getElementById("itemList").innerHTML = '<p class="text-center text-xs text-red-400 py-4">โหลดข้อมูลไม่สำเร็จ</p>';
+        document.getElementById("itemList").innerHTML = '<p class="text-center text-xs text-red-400 py-4">โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</p>';
       }
     }
 
@@ -221,10 +218,7 @@
         }
 
         if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
-
-        if (year > 2400) {
-          year -= 543;
-        }
+        if (year > 2400) year -= 543;
 
         return new Date(year, month - 1, day);
       } catch (e) {
@@ -261,7 +255,8 @@
 
       filteredItems.forEach(item => {
         const amt = parseAmount(item.amount);
-        if (item.type.includes("รายรับ")) {
+        const itemType = String(item.type || '');
+        if (itemType.includes("รายรับ") || itemType.includes("รับ")) {
           totalIncome += amt;
         } else {
           totalExpense += amt;
@@ -270,9 +265,9 @@
 
       const netTotal = totalIncome - totalExpense;
 
-      document.getElementById("totalIncome").innerText = `฿${totalIncome.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`;
-      document.getElementById("totalExpense").innerText = `฿${totalExpense.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`;
-      document.getElementById("netTotal").innerText = `฿${netTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`;
+      document.getElementById("totalIncome").innerText = `฿${totalIncome.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById("totalExpense").innerText = `฿${totalExpense.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById("netTotal").innerText = `฿${netTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       document.getElementById("totalItemsCount").innerText = filteredItems.length.toLocaleString();
 
       renderChart(totalIncome, totalExpense);
@@ -320,7 +315,8 @@
       }
 
       listEl.innerHTML = items.map(item => {
-        const isIncome = item.type.includes("รายรับ");
+        const itemType = String(item.type || '');
+        const isIncome = itemType.includes("รายรับ") || itemType.includes("รับ");
         const colorClass = isIncome ? "text-sky-600 bg-sky-50" : "text-pink-600 bg-pink-50";
         const amountSign = isIncome ? "+" : "-";
         const numAmount = parseAmount(item.amount);
@@ -328,12 +324,12 @@
         return `
           <div onclick='openEditModal(${JSON.stringify(item)})' class="flex justify-between items-center p-3 rounded-xl border border-pink-50 hover:border-pink-200 cursor-pointer active:scale-98 transition bg-white">
             <div>
-              <p class="font-semibold text-sm text-gray-800">${item.category || '-'}</p>
+              <p class="font-semibold text-sm text-gray-800">${item.category || item.note || '-'}</p>
               <p class="text-[10px] text-gray-400">${item.date || ''}</p>
             </div>
             <div class="text-right">
               <span class="text-sm font-bold ${colorClass} px-2.5 py-1 rounded-lg">
-                ${amountSign}฿${numAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                ${amountSign}฿${numAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
           </div>
@@ -377,14 +373,10 @@
         }
 
         if (isNaN(day) || isNaN(month) || isNaN(year)) return '';
-
-        if (year > 2400) {
-          year -= 543;
-        }
+        if (year > 2400) year -= 543;
 
         const dd = String(day).padStart(2, '0');
         const mm = String(month).padStart(2, '0');
-
         const timeParts = timePart.split(':');
         const hh = (timeParts[0] || '00').padStart(2, '0');
         const min = (timeParts[1] || '00').padStart(2, '0');
@@ -397,10 +389,10 @@
 
     function openEditModal(item) {
       document.getElementById("editRowIndex").value = item.rowIndex;
-      document.getElementById("editCategory").value = item.category || '';
+      document.getElementById("editCategory").value = item.category || item.note || '';
       document.getElementById("editAmount").value = parseAmount(item.amount);
       document.getElementById("editDate").value = parseDateToInput(item.date);
-      setType(item.type);
+      setType(item.type || 'รายจ่าย');
       document.getElementById("editModal").classList.remove("hidden");
     }
 
@@ -413,7 +405,7 @@
       const btnExpense = document.getElementById("btnTypeExpense");
       const btnIncome = document.getElementById("btnTypeIncome");
 
-      if (type.includes("รายจ่าย")) {
+      if (type.includes("รายจ่าย") || type.includes("จ่าย")) {
         btnExpense.className = "py-2.5 rounded-xl font-medium border text-center border-pink-500 bg-pink-50 text-pink-600";
         btnIncome.className = "py-2.5 rounded-xl font-medium border text-center border-gray-200 text-gray-600";
       } else {
