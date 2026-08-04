@@ -17,6 +17,11 @@
   <style>
     body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; }
     .nav-active { color: #E6007E; font-weight: 600; }
+    /* ซ่อนไอคอนเริ่มต้นของ browser สำหรับ input[type="month"] เพื่อให้หน้าตาสะอาดขึ้น */
+    input[type="month"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.6;
+    }
   </style>
 </head>
 <body class="max-w-md mx-auto min-h-screen text-gray-800 pb-24">
@@ -39,10 +44,11 @@
     <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
       <div class="flex justify-between items-center">
         <h2 class="font-bold text-lg text-gray-900">ประวัติรายรับรายจ่าย</h2>
-        <select class="bg-gray-50 border border-gray-200 text-xs font-medium rounded-xl px-2.5 py-1.5 text-gray-600 focus:outline-none">
-          <option>รายเดือน</option>
-          <option>รายปี</option>
-        </select>
+        <!-- ปุ่มเลือกปฏิทิน -->
+        <div class="relative flex items-center bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1 text-xs font-medium text-gray-600">
+          <span class="mr-1">📅</span>
+          <input type="month" id="barDatePicker" onchange="onBarDateChange(this.value)" class="bg-transparent focus:outline-none cursor-pointer text-xs text-gray-600">
+        </div>
       </div>
 
       <!-- Range Navigator -->
@@ -80,10 +86,11 @@
     <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
       <div class="flex justify-between items-center">
         <h2 class="font-bold text-lg text-gray-900">รายจ่ายตามหมวด</h2>
-        <select class="bg-gray-50 border border-gray-200 text-xs font-medium rounded-xl px-2.5 py-1.5 text-gray-600 focus:outline-none">
-          <option>สะสม</option>
-          <option>เดือนนี้</option>
-        </select>
+        <!-- ปุ่มเลือกปฏิทิน -->
+        <div class="relative flex items-center bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1 text-xs font-medium text-gray-600">
+          <span class="mr-1">📅</span>
+          <input type="month" id="pieDatePicker" onchange="onPieDateChange(this.value)" class="bg-transparent focus:outline-none cursor-pointer text-xs text-gray-600">
+        </div>
       </div>
 
       <!-- Pie Chart -->
@@ -93,19 +100,16 @@
     </div>
   </div>
 
-  <!-- Bottom Navigation Bar (เหลือ 3 เมนู) -->
+  <!-- Bottom Navigation Bar -->
   <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-100 px-6 py-2 flex justify-around items-center z-40 text-center text-[11px] text-gray-400">
-    <!-- 1. สรุป -->
     <a href="index.html" class="flex flex-col items-center space-y-1 hover:text-gray-600 flex-1">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
       <span>สรุป</span>
     </a>
-    <!-- 2. วิเคราะห์ -->
     <a href="analysis.html" class="flex flex-col items-center space-y-1 nav-active flex-1">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
       <span>วิเคราะห์</span>
     </a>
-    <!-- 3. เป้าหมาย -->
     <a href="goal.html" class="flex flex-col items-center space-y-1 hover:text-gray-600 flex-1">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
       <span>เป้าหมาย</span>
@@ -225,7 +229,21 @@
       }
     }
 
-    async function loadAnalysisData() {
+    function onBarDateChange(val) {
+      if (val) {
+        const [year, month] = val.split('-');
+        loadAnalysisData(new Date(year, month - 1, 1));
+      }
+    }
+
+    function onPieDateChange(val) {
+      if (val) {
+        const [year, month] = val.split('-');
+        loadAnalysisData(new Date(year, month - 1, 1));
+      }
+    }
+
+    async function loadAnalysisData(selectedDate = new Date()) {
       let cleanName = "User";
 
       try {
@@ -240,8 +258,15 @@
         cleanName = cleanDisplayName("Peerapat");
       }
 
+      // ตั้งค่าเริ่มต้นให้ Date Picker
+      const currentYYYY = selectedDate.getFullYear();
+      const currentMM = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const formattedMonth = `${currentYYYY}-${currentMM}`;
+      
+      document.getElementById('barDatePicker').value = formattedMonth;
+      document.getElementById('pieDatePicker').value = formattedMonth;
+
       const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-      const now = new Date();
       
       let monthLabels = [];
       let monthlyExpenses = [];
@@ -249,7 +274,7 @@
       let allCategoriesMap = {};
 
       for (let i = 5; i >= 0; i--) {
-        let d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        let d = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - i, 1);
         let mm = String(d.getMonth() + 1).padStart(2, '0');
         let yyyy = d.getFullYear();
         
@@ -301,7 +326,7 @@
       
       let startMonth = monthLabels[0];
       let endMonth = monthLabels[5];
-      let currentYearThai = String(now.getFullYear() + 543).slice(-2);
+      let currentYearThai = String(selectedDate.getFullYear() + 543).slice(-2);
       document.getElementById('dateRangeText').innerText = `${startMonth} - ${endMonth} ${currentYearThai}`;
 
       const pieCategories = Object.keys(allCategoriesMap);
@@ -309,7 +334,7 @@
       renderPieChart(pieCategories, pieAmounts);
     }
 
-    window.onload = loadAnalysisData;
+    window.onload = () => loadAnalysisData();
   </script>
 </body>
 </html>
