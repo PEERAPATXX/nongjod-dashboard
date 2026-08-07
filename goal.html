@@ -28,7 +28,7 @@
 
   <div class="p-4 space-y-4">
     
-    <!-- Section สรุปภาพรวมทางการเงิน (คำนวณเงินคงเหลือหลังจ่าย) -->
+    <!-- Section สรุปภาพรวมทางการเงิน -->
     <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
       <div class="flex justify-between items-center">
         <div>
@@ -74,7 +74,7 @@
       <!-- Total Progress Bar -->
       <div class="space-y-1.5 pt-1">
         <div class="flex justify-between text-xs font-medium">
-          <span class="text-gray-500">ความคืบหน้าการจ่ายค่างวด</span>
+          <span class="text-gray-500">ความคืบหน้าการจ่ายค่างวดรวม</span>
           <span id="totalPercentText" class="text-[#E6007E] font-semibold">0%</span>
         </div>
         <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
@@ -230,12 +230,15 @@
       closeModal();
     }
 
-    function togglePaidStatus(id) {
+    function togglePaidStatus(id, canPay) {
       const goals = getStoredGoals(selectedDate);
       const targetGoal = goals.find(g => g.id === id);
       if (targetGoal) {
-        targetGoal.isPaid = !targetGoal.isPaid;
-        saveStoredGoals(selectedDate, goals);
+        // สามารถยกเลิกจ่ายได้ตลอด หรือกดจ่ายได้เมื่อเงินพอ/เต็มหลอด
+        if (targetGoal.isPaid || canPay) {
+          targetGoal.isPaid = !targetGoal.isPaid;
+          saveStoredGoals(selectedDate, goals);
+        }
       }
     }
 
@@ -304,6 +307,18 @@
       let totalTarget = 0;
       let totalPaidAmount = 0;
 
+      // ตัวแปรสำหรับคำนวณเงินไหลลงหลอด
+      let remainingForGoals = availableBalance;
+
+      // คำนวณหักยอดที่กดจ่ายไปแล้วก่อน
+      goals.forEach(g => {
+        totalTarget += g.target;
+        if (g.isPaid) {
+          totalPaidAmount += g.target;
+          remainingForGoals -= g.target;
+        }
+      });
+
       if (goals.length === 0) {
         container.innerHTML = `
           <div class="text-center py-8 bg-white rounded-3xl border border-gray-100">
@@ -314,16 +329,51 @@
       }
 
       goals.forEach(goal => {
-        totalTarget += goal.target;
-        if (goal.isPaid) {
-          totalPaidAmount += goal.target;
+        const isPaid = !!goal.isPaid;
+        let filledAmount = 0;
+
+        if (isPaid) {
+          filledAmount = goal.target;
+        } else {
+          if (remainingForGoals > 0) {
+            if (remainingForGoals >= goal.target) {
+              filledAmount = goal.target;
+              remainingForGoals -= goal.target;
+            } else {
+              filledAmount = remainingForGoals;
+              remainingForGoals = 0;
+            }
+          }
         }
 
-        const isPaid = !!goal.isPaid;
+        const percent = Math.min(100, Math.round((filledAmount / goal.target) * 100));
+        const isFull = percent >= 100;
 
         const card = document.createElement('div');
-        card.className = `bg-white p-4 rounded-3xl shadow-sm border ${isPaid ? 'border-emerald-200 bg-emerald-50/30' : 'border-gray-100'} space-y-3 transition-all`;
+        card.className = `bg-white p-4 rounded-3xl shadow-sm border ${isPaid ? 'border-emerald-200 bg-emerald-50/20' : 'border-gray-100'} space-y-3 transition-all`;
         
+        // ปุ่มจะเปิดให้กดจ่ายได้ถ้ากดจ่ายแล้ว หรือเงินเติมหลอดเต็ม 100%
+        let buttonHtml = '';
+        if (isPaid) {
+          buttonHtml = `
+            <button onclick="togglePaidStatus(${goal.id}, true)" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500 text-white shadow-sm transition-all hover:bg-emerald-600">
+              ✓ จ่ายแล้ว
+            </button>
+          `;
+        } else if (isFull) {
+          buttonHtml = `
+            <button onclick="togglePaidStatus(${goal.id}, true)" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500 text-white shadow-sm transition-all hover:bg-emerald-600 animate-pulse">
+              ✓ จ่ายเลย
+            </button>
+          `;
+        } else {
+          buttonHtml = `
+            <button disabled class="px-3 py-1.5 rounded-xl text-xs font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+              เงินไม่พอจ่าย
+            </button>
+          `;
+        }
+
         card.innerHTML = `
           <div class="flex justify-between items-start gap-2">
             <div>
@@ -332,18 +382,28 @@
                 ${goal.dueDate ? `<span class="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">ครบกำหนด ${formatDateTH(goal.dueDate)}</span>` : ''}
               </div>
               <p class="text-xs text-gray-400 mt-1">
-                ยอดค่างวด: <span class="font-semibold ${isPaid ? 'text-emerald-600' : 'text-gray-800'}">฿${goal.target.toLocaleString('th-TH')}</span>
+                ยอดค่างวด: <span class="font-semibold text-gray-800">฿${goal.target.toLocaleString('th-TH')}</span>
               </p>
             </div>
 
             <div class="flex items-center gap-1.5">
-              <button onclick="togglePaidStatus(${goal.id})" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${isPaid ? 'bg-emerald-500 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}">
-                ${isPaid ? '✓ จ่ายแล้ว' : 'จ่ายแล้ว?'}
-              </button>
-              
+              ${buttonHtml}
               <button onclick="deleteGoal(${goal.id})" class="w-7 h-7 rounded-xl bg-gray-50 hover:bg-rose-50 text-gray-400 hover:text-rose-500 flex items-center justify-center text-sm transition-all">
                 &times;
               </button>
+            </div>
+          </div>
+
+          <!-- Progress Bar ของเป้าหมายนี้ -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-[11px] font-medium">
+              <span class="${isPaid || isFull ? 'text-emerald-600 font-semibold' : 'text-gray-500'}">
+                ${isPaid ? 'จ่ายเรียบร้อยแล้ว' : `สะสมได้ ฿${filledAmount.toLocaleString('th-TH')}`}
+              </span>
+              <span class="text-gray-400">${percent}%</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+              <div class="${isPaid || isFull ? 'bg-emerald-500' : 'bg-[#E6007E]'} h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
             </div>
           </div>
         `;
@@ -351,7 +411,7 @@
         container.appendChild(card);
       });
 
-      // สรุปผลตัวเลขการเงิน
+      // สรุปผลตัวเลขการเงินภาพรวม
       const pendingTotal = totalTarget - totalPaidAmount;
       const remainingAfterPaid = availableBalance - totalPaidAmount;
       const overallPercent = totalTarget > 0 ? Math.min(100, Math.round((totalPaidAmount / totalTarget) * 100)) : 0;
