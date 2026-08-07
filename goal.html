@@ -28,7 +28,7 @@
 
   <div class="p-4 space-y-4">
     
-    <!-- Section สรุปภาพรวม (สไตล์ Clean เช่นเดียวกับ Analysis) -->
+    <!-- Section สรุปภาพรวมทางการเงิน (คำนวณเงินคงเหลือหลังจ่าย) -->
     <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
       <div class="flex justify-between items-center">
         <div>
@@ -41,22 +41,40 @@
         </div>
       </div>
 
-      <!-- สรุปตัวเลขทางการเงิน -->
-      <div class="grid grid-cols-2 gap-3 pt-2">
-        <div class="p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
-          <p class="text-[11px] text-gray-400">เงินคงเหลือในระบบ</p>
-          <h2 id="netBalanceText" class="text-xl font-bold text-gray-900 mt-0.5">฿0</h2>
+      <!-- สรุปตัวเลขเงินคงเหลือจริง -->
+      <div class="p-4 rounded-2xl bg-gray-900 text-white space-y-3">
+        <div class="flex justify-between items-center text-xs text-gray-400">
+          <span>เงินในระบบคงเหลือทั้งหมด</span>
+          <span id="netBalanceText" class="font-semibold text-white">฿0</span>
         </div>
-        <div class="p-3.5 rounded-2xl bg-pink-50/50 border border-pink-100">
-          <p class="text-[11px] text-gray-500">เป้าหมายรวมเดือนนี้</p>
-          <h2 id="totalTargetText" class="text-xl font-bold text-[#E6007E] mt-0.5">฿0</h2>
+        <div class="pt-2 border-t border-gray-800 flex justify-between items-end">
+          <div>
+            <p class="text-[11px] text-gray-400">เงินคงเหลือจริง (หลังหักจ่ายค่างวดแล้ว)</p>
+            <h2 id="remainingAfterPaidText" class="text-2xl font-bold text-emerald-400 mt-0.5">฿0</h2>
+          </div>
+          <div class="text-right">
+            <p class="text-[11px] text-gray-400">จ่ายไปแล้วรวม</p>
+            <p id="paidTotalText" class="text-sm font-semibold text-[#E6007E]">฿0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- รายละเอียดเป้าหมายรวม -->
+      <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+        <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+          <span class="text-gray-400">เป้าหมายรวมทั้งหมด:</span>
+          <p id="totalTargetText" class="font-semibold text-gray-800 mt-0.5">฿0</p>
+        </div>
+        <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+          <span class="text-gray-400">ยังค้างจ่ายอีก:</span>
+          <p id="pendingTotalText" class="font-semibold text-amber-600 mt-0.5">฿0</p>
         </div>
       </div>
 
       <!-- Total Progress Bar -->
       <div class="space-y-1.5 pt-1">
         <div class="flex justify-between text-xs font-medium">
-          <span class="text-gray-500">ความคืบหน้าการชำระ/ออม</span>
+          <span class="text-gray-500">ความคืบหน้าการจ่ายค่างวด</span>
           <span id="totalPercentText" class="text-[#E6007E] font-semibold">0%</span>
         </div>
         <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
@@ -267,14 +285,14 @@
           }
         });
 
-        return Math.max(0, totalInc - totalExp);
+        return totalInc - totalExp;
       } catch (e) {
         return 0;
       }
     }
 
     async function calculateAndRender() {
-      document.getElementById('loadingStatus').innerText = "กำลังโหลด...";
+      document.getElementById('loadingStatus').innerText = "กำลังคำนวณ...";
       
       const availableBalance = await fetchNetBalanceByDate(selectedDate);
       document.getElementById('loadingStatus').innerText = "อัปเดตแล้ว";
@@ -302,10 +320,9 @@
         }
 
         const isPaid = !!goal.isPaid;
-        const percent = isPaid ? 100 : 0;
 
         const card = document.createElement('div');
-        card.className = `bg-white p-4 rounded-3xl shadow-sm border ${isPaid ? 'border-emerald-100 bg-emerald-50/20' : 'border-gray-100'} space-y-3 transition-all`;
+        card.className = `bg-white p-4 rounded-3xl shadow-sm border ${isPaid ? 'border-emerald-200 bg-emerald-50/30' : 'border-gray-100'} space-y-3 transition-all`;
         
         card.innerHTML = `
           <div class="flex justify-between items-start gap-2">
@@ -315,27 +332,18 @@
                 ${goal.dueDate ? `<span class="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">ครบกำหนด ${formatDateTH(goal.dueDate)}</span>` : ''}
               </div>
               <p class="text-xs text-gray-400 mt-1">
-                เป้าหมาย: <span class="font-semibold text-gray-700">฿${goal.target.toLocaleString('th-TH')}</span>
+                ยอดค่างวด: <span class="font-semibold ${isPaid ? 'text-emerald-600' : 'text-gray-800'}">฿${goal.target.toLocaleString('th-TH')}</span>
               </p>
             </div>
 
             <div class="flex items-center gap-1.5">
-              <!-- ปุ่มกด จ่ายแล้ว / ยังไม่จ่าย -->
               <button onclick="togglePaidStatus(${goal.id})" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${isPaid ? 'bg-emerald-500 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}">
                 ${isPaid ? '✓ จ่ายแล้ว' : 'จ่ายแล้ว?'}
               </button>
               
-              <!-- ปุ่มลบ -->
               <button onclick="deleteGoal(${goal.id})" class="w-7 h-7 rounded-xl bg-gray-50 hover:bg-rose-50 text-gray-400 hover:text-rose-500 flex items-center justify-center text-sm transition-all">
                 &times;
               </button>
-            </div>
-          </div>
-
-          <!-- Progress Bar -->
-          <div class="space-y-1">
-            <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-              <div class="${isPaid ? 'bg-emerald-500' : 'bg-gray-200'} h-full rounded-full transition-all duration-300" style="width: ${percent}%"></div>
             </div>
           </div>
         `;
@@ -343,11 +351,17 @@
         container.appendChild(card);
       });
 
-      // สรุปภาพรวม
+      // สรุปผลตัวเลขการเงิน
+      const pendingTotal = totalTarget - totalPaidAmount;
+      const remainingAfterPaid = availableBalance - totalPaidAmount;
       const overallPercent = totalTarget > 0 ? Math.min(100, Math.round((totalPaidAmount / totalTarget) * 100)) : 0;
       
       document.getElementById('netBalanceText').innerText = `฿${availableBalance.toLocaleString('th-TH')}`;
+      document.getElementById('remainingAfterPaidText').innerText = `฿${remainingAfterPaid.toLocaleString('th-TH')}`;
+      document.getElementById('paidTotalText').innerText = `฿${totalPaidAmount.toLocaleString('th-TH')}`;
       document.getElementById('totalTargetText').innerText = `฿${totalTarget.toLocaleString('th-TH')}`;
+      document.getElementById('pendingTotalText').innerText = `฿${pendingTotal.toLocaleString('th-TH')}`;
+      
       document.getElementById('totalPercentText').innerText = `${overallPercent}%`;
       document.getElementById('totalProgressBar').style.width = `${overallPercent}%`;
     }
