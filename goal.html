@@ -45,7 +45,7 @@
 
   <div class="p-4 space-y-4">
     
-    <!-- Section สรุปภาพรวมทางการเงิน (ธีมสีตามรูปภาพตัวอย่าง) -->
+    <!-- Section สรุปภาพรวมทางการเงิน -->
     <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
       <div class="flex justify-between items-center">
         <div>
@@ -58,7 +58,7 @@
         </div>
       </div>
 
-      <!-- สรุปตัวเลขเงินคงเหลือจริง ถอดแบบสีจากภาพตัวอย่าง -->
+      <!-- สรุปตัวเลขเงินคงเหลือจริง (การ์ดเข้ม + สีตัวเลขตามแบบรูปถ่าย) -->
       <div class="p-4 rounded-2xl bg-[#0F172A] text-white space-y-3 shadow-md">
         <div class="flex justify-between items-center text-xs text-gray-400">
           <span>เงินในระบบคงเหลือทั้งหมด</span>
@@ -88,11 +88,11 @@
         </div>
       </div>
 
-      <!-- Total Progress Bar -->
+      <!-- Total Progress Bar (ธีมสีชมพู #E6007E) -->
       <div class="space-y-1.5 pt-1">
         <div class="flex justify-between text-xs font-medium">
-          <span class="text-gray-500">ความคืบหน้าการจ่ายค่างวดรวม</span>
-          <span id="totalPercentText" class="text-[#E6007E] font-semibold">0%</span>
+          <span class="text-gray-500">ความคืบหน้าการจ่ายทั้งหมด</span>
+          <span id="totalPercentText" class="text-[#E6007E] font-bold">0%</span>
         </div>
         <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
           <div id="totalProgressBar" class="bg-[#E6007E] h-full rounded-full transition-all duration-500" style="width: 0%"></div>
@@ -439,7 +439,7 @@
       document.getElementById('totalProgressBar').style.width = `${overallPercent}%`;
     }
 
-    // ฟังก์ชันจัดการ Animation ลากย้ายตำแหน่ง (Drag & Touch Event)
+    // ฟังก์ชันจัดการ Animation ลากย้ายตำแหน่ง
     function enableDragAndTouch(card, container) {
       let touchStartY = 0;
       let currentY = 0;
