@@ -28,7 +28,7 @@
 
   <div class="p-4 space-y-4">
     
-    <!-- Section สรุปภาพรวมทางการเงิน -->
+    <!-- Section สรุปภาพรวมทางการเงิน (ปรับธีมสีชมพูตามธีมน้องจด) -->
     <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
       <div class="flex justify-between items-center">
         <div>
@@ -41,20 +41,20 @@
         </div>
       </div>
 
-      <!-- สรุปตัวเลขเงินคงเหลือจริง -->
-      <div class="p-4 rounded-2xl bg-gray-900 text-white space-y-3">
-        <div class="flex justify-between items-center text-xs text-gray-400">
+      <!-- สรุปตัวเลขเงินคงเหลือจริง (เปลี่ยนจากดำเป็นเกรเดียนต์ชมพู #E6007E) -->
+      <div class="p-5 rounded-2xl bg-gradient-to-br from-[#E6007E] via-[#c2006a] to-[#990054] text-white space-y-3 shadow-md shadow-pink-200/50">
+        <div class="flex justify-between items-center text-xs text-pink-100/90">
           <span>เงินในระบบคงเหลือทั้งหมด</span>
           <span id="netBalanceText" class="font-semibold text-white">฿0</span>
         </div>
-        <div class="pt-2 border-t border-gray-800 flex justify-between items-end">
+        <div class="pt-2 border-t border-pink-400/30 flex justify-between items-end">
           <div>
-            <p class="text-[11px] text-gray-400">เงินคงเหลือจริง (หลังหักจ่ายค่างวดแล้ว)</p>
-            <h2 id="remainingAfterPaidText" class="text-2xl font-bold text-emerald-400 mt-0.5">฿0</h2>
+            <p class="text-[11px] text-pink-100/80">เงินคงเหลือจริง (หลังหักจ่ายค่างวดแล้ว)</p>
+            <h2 id="remainingAfterPaidText" class="text-2xl font-bold text-amber-200 mt-0.5">฿0</h2>
           </div>
           <div class="text-right">
-            <p class="text-[11px] text-gray-400">จ่ายไปแล้วรวม</p>
-            <p id="paidTotalText" class="text-sm font-semibold text-[#E6007E]">฿0</p>
+            <p class="text-[11px] text-pink-100/80">จ่ายไปแล้วรวม</p>
+            <p id="paidTotalText" class="text-sm font-bold text-white">฿0</p>
           </div>
         </div>
       </div>
@@ -174,6 +174,30 @@
       return `${parseInt(dd)}/${parseInt(mm)}`;
     }
 
+    // คำนวณวันคงเหลือ และคืนค่า Badge สีเตือน
+    function getDueBadgeHtml(dueDateStr, isPaid) {
+      if (!dueDateStr || isPaid) return '';
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const [yyyy, mm, dd] = dueDateStr.split('-');
+      const targetDate = new Date(parseInt(yyyy), parseInt(mm) - 1, parseInt(dd));
+      
+      const diffTime = targetDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) {
+        return `<span class="text-[10px] bg-rose-100 text-rose-600 font-semibold px-2 py-0.5 rounded-full">เลยกำหนด ${Math.abs(diffDays)} วัน</span>`;
+      } else if (diffDays === 0) {
+        return `<span class="text-[10px] bg-rose-500 text-white font-semibold px-2 py-0.5 rounded-full animate-pulse">ครบกำหนดวันนี้</span>`;
+      } else if (diffDays <= 3) {
+        return `<span class="text-[10px] bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full">อีก ${diffDays} วัน</span>`;
+      } else {
+        return `<span class="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">ครบกำหนด ${formatDateTH(dueDateStr)}</span>`;
+      }
+    }
+
     function getMonthKey(date) {
       const mm = String(date.getMonth() + 1).padStart(2, '0');
       const yyyy = date.getFullYear();
@@ -220,21 +244,27 @@
       const goals = getStoredGoals(selectedDate);
       goals.push({ id: Date.now(), title, target, dueDate, isPaid: false });
 
-      goals.sort((a, b) => {
-        if (!a.dueDate) return 1;
-        if (!b.dueDate) return -1;
-        return new Date(a.dueDate) - new Date(b.dueDate);
-      });
-
       saveStoredGoals(selectedDate, goals);
       closeModal();
+    }
+
+    // ฟังก์ชันเลื่อนลำดับขึ้น-ลง (Priority Reordering)
+    function moveGoal(index, direction) {
+      const goals = getStoredGoals(selectedDate);
+      const targetIndex = index + direction;
+      
+      if (targetIndex >= 0 && targetIndex < goals.length) {
+        const temp = goals[index];
+        goals[index] = goals[targetIndex];
+        goals[targetIndex] = temp;
+        saveStoredGoals(selectedDate, goals);
+      }
     }
 
     function togglePaidStatus(id, canPay) {
       const goals = getStoredGoals(selectedDate);
       const targetGoal = goals.find(g => g.id === id);
       if (targetGoal) {
-        // สามารถยกเลิกจ่ายได้ตลอด หรือกดจ่ายได้เมื่อเงินพอ/เต็มหลอด
         if (targetGoal.isPaid || canPay) {
           targetGoal.isPaid = !targetGoal.isPaid;
           saveStoredGoals(selectedDate, goals);
@@ -307,10 +337,8 @@
       let totalTarget = 0;
       let totalPaidAmount = 0;
 
-      // ตัวแปรสำหรับคำนวณเงินไหลลงหลอด
       let remainingForGoals = availableBalance;
 
-      // คำนวณหักยอดที่กดจ่ายไปแล้วก่อน
       goals.forEach(g => {
         totalTarget += g.target;
         if (g.isPaid) {
@@ -328,7 +356,7 @@
         `;
       }
 
-      goals.forEach(goal => {
+      goals.forEach((goal, idx) => {
         const isPaid = !!goal.isPaid;
         let filledAmount = 0;
 
@@ -352,7 +380,6 @@
         const card = document.createElement('div');
         card.className = `bg-white p-4 rounded-3xl shadow-sm border ${isPaid ? 'border-emerald-200 bg-emerald-50/20' : 'border-gray-100'} space-y-3 transition-all`;
         
-        // ปุ่มจะเปิดให้กดจ่ายได้ถ้ากดจ่ายแล้ว หรือเงินเติมหลอดเต็ม 100%
         let buttonHtml = '';
         if (isPaid) {
           buttonHtml = `
@@ -376,14 +403,22 @@
 
         card.innerHTML = `
           <div class="flex justify-between items-start gap-2">
-            <div>
-              <div class="flex items-center gap-2">
-                <h4 class="font-bold text-sm ${isPaid ? 'line-through text-gray-400' : 'text-gray-900'}">${goal.title}</h4>
-                ${goal.dueDate ? `<span class="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">ครบกำหนด ${formatDateTH(goal.dueDate)}</span>` : ''}
+            <div class="flex items-start gap-2">
+              <!-- ปุ่มสลับลำดับ ความสำคัญ -->
+              <div class="flex flex-col gap-0.5 pt-0.5 text-gray-300">
+                <button onclick="moveGoal(${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-20"' : 'class="hover:text-gray-600"'}>▲</button>
+                <button onclick="moveGoal(${idx}, 1)" ${idx === goals.length - 1 ? 'disabled class="opacity-20"' : 'class="hover:text-gray-600"'}>▼</button>
               </div>
-              <p class="text-xs text-gray-400 mt-1">
-                ยอดค่างวด: <span class="font-semibold text-gray-800">฿${goal.target.toLocaleString('th-TH')}</span>
-              </p>
+
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h4 class="font-bold text-sm ${isPaid ? 'line-through text-gray-400' : 'text-gray-900'}">${goal.title}</h4>
+                  ${getDueBadgeHtml(goal.dueDate, isPaid)}
+                </div>
+                <p class="text-xs text-gray-400 mt-1">
+                  ยอดค่างวด: <span class="font-semibold text-gray-800">฿${goal.target.toLocaleString('th-TH')}</span>
+                </p>
+              </div>
             </div>
 
             <div class="flex items-center gap-1.5">
@@ -394,7 +429,7 @@
             </div>
           </div>
 
-          <!-- Progress Bar ของเป้าหมายนี้ -->
+          <!-- Progress Bar -->
           <div class="space-y-1">
             <div class="flex justify-between text-[11px] font-medium">
               <span class="${isPaid || isFull ? 'text-emerald-600 font-semibold' : 'text-gray-500'}">
