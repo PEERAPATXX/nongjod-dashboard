@@ -88,7 +88,7 @@
       </div>
     </div>
 
-    <!-- Section 3: สรุปเงินรายอาทิตย์ (อิงปฏิทินจริง + ยอดรวมทั้งเดือน) -->
+    <!-- Section 3: สรุปเงินรายอาทิตย์ (แบบเดิม 1-7, 8-14... + ยอดรวมทั้งเดือน ด้านล่างสุด) -->
     <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
       <div class="flex justify-between items-center">
         <div>
@@ -267,30 +267,21 @@
       loadAnalysisData(currentDate);
     }
 
-    // ฟังก์ชั่นคำนวณเงินรายสัปดาห์แบบอิงปฏิทินจริง (ตัดจบสัปดาห์ทุกวันอาทิตย์)
+    // ฟังก์ชั่นคำนวณเงินรายสัปดาห์แบบช่วงวันที่คงที่ (1-7, 8-14, 15-21, 22-28, 29-สิ้นเดือน)
     function processWeeklySummary(items, selectedDate) {
       const year = selectedDate.getFullYear();
       const month = selectedDate.getMonth();
       const lastDay = new Date(year, month + 1, 0).getDate();
 
-      let weeks = [];
-      let currentStart = 1;
-      let weekIndex = 1;
+      const weeks = [
+        { label: "อาทิตย์ที่ 1", start: 1, end: 7 },
+        { label: "อาทิตย์ที่ 2", start: 8, end: 14 },
+        { label: "อาทิตย์ที่ 3", start: 15, end: 21 },
+        { label: "อาทิตย์ที่ 4", start: 22, end: 28 },
+        { label: "อาทิตย์ที่ 5", start: 29, end: lastDay }
+      ];
 
-      for (let d = 1; d <= lastDay; d++) {
-        let dayOfWeek = new Date(year, month, d).getDay(); // 0 = อาทิตย์
-        if (dayOfWeek === 0 || d === lastDay) {
-          weeks.push({
-            label: `อาทิตย์ที่ ${weekIndex}`,
-            start: currentStart,
-            end: d,
-            income: 0,
-            expense: 0
-          });
-          currentStart = d + 1;
-          weekIndex++;
-        }
-      }
+      let weeklyData = weeks.map(w => ({ ...w, income: 0, expense: 0 }));
 
       if (Array.isArray(items)) {
         items.forEach(item => {
@@ -306,7 +297,7 @@
           }
 
           if (day >= 1 && day <= lastDay) {
-            let targetWeek = weeks.find(w => day >= w.start && day <= w.end);
+            let targetWeek = weeklyData.find(w => day >= w.start && day <= w.end);
             if (targetWeek) {
               if (type.includes("รายรับ") || type.includes("รับ") || type.includes("income")) {
                 targetWeek.income += amt;
@@ -324,7 +315,9 @@
       let totalMonthIncome = 0;
       let totalMonthExpense = 0;
 
-      weeks.forEach((w) => {
+      weeklyData.forEach((w) => {
+        if (w.start > lastDay) return;
+
         totalMonthIncome += w.income;
         totalMonthExpense += w.expense;
 
