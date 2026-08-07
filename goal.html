@@ -15,14 +15,14 @@
   
   <style>
     html, body {
-      overscroll-behavior: none; /* ป้องกันหน้าจอด้านหลังเด้ง/ขยับเวลาไถหน้าจอ */
-      -webkit-tap-highlight-color: transparent; /* ลบไฮไลท์สีฟ้าเวลาแตะบนมือถือ */
+      overscroll-behavior-y: none; /* ป้องกันการรูดเด้ง/ปิดหน้าจอข้ามขอบบน-ล่าง */
+      -webkit-tap-highlight-color: transparent;
     }
     body { 
       font-family: 'Prompt', sans-serif; 
       background-color: #F8F9FA; 
       -webkit-user-select: none;
-      user-select: none; /* ป้องกันการคลุมดำคัดลอกข้อความเวลาจิ้มค้าง */
+      user-select: none;
     }
     .nav-active { color: #E6007E; font-weight: 600; }
     
@@ -34,17 +34,18 @@
 
     /* Drag & Drop Styles */
     .draggable-card {
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
     .drag-handle {
-      touch-action: none; /* จำกัดการลากให้เกิดเฉพาะตรงไอคอนจับเท่านั้น */
+      touch-action: none; /* ล็อกไม่ให้การแตะส่วนนี้ส่งผลกับการสกรอลล์หน้าเว็บ */
       cursor: grab;
     }
     .dragging {
-      opacity: 0.85;
+      opacity: 0.9;
       scale: 1.02;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 12px 28px -5px rgba(0, 0, 0, 0.25);
       z-index: 50;
+      transition: none !important; /* ปิด transition ตอนลากเพื่อให้ลื่นไหลตามนิ้ว */
     }
   </style>
 </head>
@@ -119,7 +120,7 @@
         <span id="loadingStatus" class="text-xs text-gray-400">กำลังโหลด...</span>
       </div>
       
-      <div id="goalList" class="space-y-3 min-h-[50px]">
+      <div id="goalList" class="space-y-3 min-h-[50px] relative">
         <!-- รายการแสดงผลผ่าน JS -->
       </div>
     </div>
@@ -392,7 +393,7 @@
         card.innerHTML = `
           <div class="flex justify-between items-start gap-2">
             <div class="flex items-start gap-2">
-              <span class="drag-handle text-gray-400 p-1 rounded hover:bg-gray-100 text-base select-none mt-0.5">⣿</span>
+              <span class="drag-handle text-gray-400 p-1.5 rounded hover:bg-gray-100 text-base select-none mt-0.5 cursor-grab">⣿</span>
               <div>
                 <div class="flex items-center gap-2">
                   <h4 class="font-bold text-sm ${isPaid ? 'line-through text-gray-400' : 'text-gray-900'}">${goal.title}</h4>
@@ -426,7 +427,7 @@
           </div>
         `;
 
-        enableDragAndTouch(card, container);
+        enableDragAndDrop(card, container);
         container.appendChild(card);
       });
 
@@ -445,28 +446,38 @@
       document.getElementById('totalProgressBar').style.width = `${overallPercent}%`;
     }
 
-    // ฟังก์ชันจัดการ Drag & Drop แบบล็อกไม่ให้หน้าขยับ
-    function enableDragAndTouch(card, container) {
-      let touchStartY = 0;
-      let currentY = 0;
-      let activeCard = null;
+    // ฟังก์ชัน Drag & Drop ล็อกการลากไม่ให้ไปกระตุ้น Pull-to-refresh หรือการปิดแอป
+    function enableDragAndDrop(card, container) {
       const handle = card.querySelector('.drag-handle');
-
       if (!handle) return;
 
-      handle.addEventListener('touchstart', (e) => {
-        activeCard = card;
-        touchStartY = e.touches[0].clientY;
-        card.classList.add('dragging');
-      }, { passive: true });
+      let isDragging = false;
+      let startY = 0;
+      let cardStartY = 0;
 
-      handle.addEventListener('touchmove', (e) => {
-        if (!activeCard) return;
-        currentY = e.touches[0].clientY;
-        const deltaY = currentY - touchStartY;
+      handle.addEventListener('pointerdown', (e) => {
+        isDragging = true;
+        handle.setPointerCapture(e.pointerId); // ล็อกพอยเตอร์ให้เกาะติดกับตัวไอคอนตลอดการลาก
         
-        activeCard.style.transform = `translateY(${deltaY}px)`;
+        startY = e.clientY;
+        const rect = card.getBoundingClientRect();
+        cardStartY = rect.top;
 
+        card.classList.add('dragging');
+      });
+
+      handle.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        
+        // ป้องกันไม่ให้เบราว์เซอร์ทำการ Swipe To Close หรือ Refresh หน้าจอ
+        if (e.cancelable) e.preventDefault();
+
+        const currentY = e.clientY;
+        const deltaY = currentY - startY;
+
+        card.style.transform = `translateY(${deltaY}px)`;
+
+        // หาตำแหน่งที่จะแทรกการ์ด
         const siblings = [...container.querySelectorAll('.draggable-card:not(.dragging)')];
         const nextSibling = siblings.find(sibling => {
           const box = sibling.getBoundingClientRect();
@@ -474,22 +485,27 @@
         });
 
         if (nextSibling) {
-          container.insertBefore(activeCard, nextSibling);
+          container.insertBefore(card, nextSibling);
         } else {
-          container.appendChild(activeCard);
+          container.appendChild(card);
         }
-      }, { passive: true });
+      });
 
-      const stopDrag = () => {
-        if (!activeCard) return;
-        activeCard.style.transform = '';
-        activeCard.classList.remove('dragging');
-        activeCard = null;
+      const stopDrag = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        try {
+          handle.releasePointerCapture(e.pointerId);
+        } catch (err) {}
+
+        card.style.transform = '';
+        card.classList.remove('dragging');
         updateGoalsOrder();
       };
 
-      handle.addEventListener('touchend', stopDrag);
-      handle.addEventListener('touchcancel', stopDrag);
+      handle.addEventListener('pointerup', stopDrag);
+      handle.addEventListener('pointercancel', stopDrag);
     }
 
     function updateGoalsOrder() {
