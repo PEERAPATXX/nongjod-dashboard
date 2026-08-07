@@ -17,7 +17,6 @@
   <style>
     body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; }
     .nav-active { color: #E6007E; font-weight: 600; }
-    /* ซ่อนไอคอนเริ่มต้นของ browser สำหรับ input[type="month"] เพื่อให้หน้าตาสะอาดขึ้น */
     input[type="month"]::-webkit-calendar-picker-indicator {
       cursor: pointer;
       opacity: 0.6;
@@ -32,11 +31,30 @@
       <button id="tabIncomeExpense" onclick="switchTab('income-expense')" class="flex-1 py-2 rounded-xl bg-white text-gray-800 shadow-sm transition-all text-center">วิเคราะห์การเงิน</button>
     </div>
 
-    <!-- Section 1: ประวัติรายรับรายจ่าย -->
+    <!-- Section 1: สรุปเงินรายอาทิตย์ (เพิ่มใหม่) -->
+    <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="font-bold text-lg text-gray-900">สรุปรายอาทิตย์</h2>
+          <p id="weeklyMonthText" class="text-xs text-gray-400">ประจาเดือน สิงหาคม</p>
+        </div>
+        <div class="relative flex items-center bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1 text-xs font-medium text-gray-600">
+          <span class="mr-1">📅</span>
+          <input type="month" id="weeklyDatePicker" onchange="onWeeklyDateChange(this.value)" class="bg-transparent focus:outline-none cursor-pointer text-xs text-gray-600">
+        </div>
+      </div>
+
+      <!-- รายการสรุปแต่ละสัปดาห์ -->
+      <div id="weeklyContainer" class="space-y-3">
+        <!-- JS จะสร้างเนื้อหามาใส่ตรงนี้ -->
+        <p class="text-center text-xs text-gray-400 py-4">กำลังโหลดข้อมูล...</p>
+      </div>
+    </div>
+
+    <!-- Section 2: ประวัติรายรับรายจ่าย (6 เดือนย้อนหลัง) -->
     <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
       <div class="flex justify-between items-center">
         <h2 class="font-bold text-lg text-gray-900">ประวัติรายรับรายจ่าย</h2>
-        <!-- ปุ่มเลือกปฏิทิน -->
         <div class="relative flex items-center bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1 text-xs font-medium text-gray-600">
           <span class="mr-1">📅</span>
           <input type="month" id="barDatePicker" onchange="onBarDateChange(this.value)" class="bg-transparent focus:outline-none cursor-pointer text-xs text-gray-600">
@@ -45,9 +63,9 @@
 
       <!-- Range Navigator -->
       <div class="flex justify-between items-center text-xs text-gray-500 font-medium px-2">
-        <button class="hover:text-gray-800">&lt;</button>
+        <button class="hover:text-gray-800" onclick="shiftMonth(-1)">&lt;</button>
         <span id="dateRangeText">กำลังโหลด...</span>
-        <button class="hover:text-gray-800">&gt;</button>
+        <button class="hover:text-gray-800" onclick="shiftMonth(1)">&gt;</button>
       </div>
 
       <!-- Bar Chart -->
@@ -74,11 +92,10 @@
       </div>
     </div>
 
-    <!-- Section 2: รายจ่ายตามหมวด -->
+    <!-- Section 3: รายจ่ายตามหมวด -->
     <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
       <div class="flex justify-between items-center">
         <h2 class="font-bold text-lg text-gray-900">รายจ่ายตามหมวด</h2>
-        <!-- ปุ่มเลือกปฏิทิน -->
         <div class="relative flex items-center bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1 text-xs font-medium text-gray-600">
           <span class="mr-1">📅</span>
           <input type="month" id="pieDatePicker" onchange="onPieDateChange(this.value)" class="bg-transparent focus:outline-none cursor-pointer text-xs text-gray-600">
@@ -112,6 +129,9 @@
     const WORKER_URL = "https://nongjod.hay-peerapattx-co-th.workers.dev/";
     let barChartInstance = null;
     let pieChartInstance = null;
+    let currentDate = new Date();
+    const thaiFullMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+    const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
     function cleanDisplayName(name) {
       if (!name) return "User";
@@ -122,14 +142,7 @@
 
     function switchTab(tab) {
       const btn1 = document.getElementById('tabIncomeExpense');
-      const btn2 = document.getElementById('tabSavings');
-      if (tab === 'income-expense') {
-        btn1.className = "flex-1 py-2 rounded-xl bg-white text-gray-800 shadow-sm transition-all text-center font-medium";
-        btn2.className = "flex-1 py-2 rounded-xl text-gray-500 hover:text-gray-700 transition-all text-center font-medium";
-      } else {
-        btn2.className = "flex-1 py-2 rounded-xl bg-white text-gray-800 shadow-sm transition-all text-center font-medium";
-        btn1.className = "flex-1 py-2 rounded-xl text-gray-500 hover:text-gray-700 transition-all text-center font-medium";
-      }
+      if (btn1) btn1.className = "flex-1 py-2 rounded-xl bg-white text-gray-800 shadow-sm transition-all text-center font-medium";
     }
 
     function parseAmount(val) {
@@ -221,18 +234,114 @@
       }
     }
 
+    function onWeeklyDateChange(val) {
+      if (val) {
+        const [year, month] = val.split('-');
+        currentDate = new Date(year, month - 1, 1);
+        loadAnalysisData(currentDate);
+      }
+    }
+
     function onBarDateChange(val) {
       if (val) {
         const [year, month] = val.split('-');
-        loadAnalysisData(new Date(year, month - 1, 1));
+        currentDate = new Date(year, month - 1, 1);
+        loadAnalysisData(currentDate);
       }
     }
 
     function onPieDateChange(val) {
       if (val) {
         const [year, month] = val.split('-');
-        loadAnalysisData(new Date(year, month - 1, 1));
+        currentDate = new Date(year, month - 1, 1);
+        loadAnalysisData(currentDate);
       }
+    }
+
+    function shiftMonth(offset) {
+      currentDate.setMonth(currentDate.getMonth() + offset);
+      loadAnalysisData(currentDate);
+    }
+
+    // ฟังก์ชั่นคำนวณเงินรายสัปดาห์
+    function processWeeklySummary(items, selectedDate) {
+      const year = selectedDate.getFullYear();
+      const month = selectedDate.getMonth();
+      const lastDay = new Date(year, month + 1, 0).getDate();
+
+      // กำหนดช่วงสัปดาห์ในเดือน
+      const weeks = [
+        { label: "อาทิตย์ที่ 1", start: 1, end: 7 },
+        { label: "อาทิตย์ที่ 2", start: 8, end: 14 },
+        { label: "อาทิตย์ที่ 3", start: 15, end: 21 },
+        { label: "อาทิตย์ที่ 4", start: 22, end: 28 },
+        { label: "อาทิตย์ที่ 5", start: 29, end: lastDay }
+      ];
+
+      // สร้างตัวแปรเก็บยอดแต่ละสัปดาห์
+      let weeklyData = weeks.map(w => ({ ...w, income: 0, expense: 0, net: 0 }));
+
+      if (Array.isArray(items)) {
+        items.forEach(item => {
+          let amt = parseAmount(item.amount);
+          let type = String(item.type || '').trim().toLowerCase();
+          
+          // ดึงวันที่จากข้อมูล (รองรับทั้ง YYYY-MM-DD หรือ DD/MM/YYYY)
+          let day = 0;
+          if (item.date) {
+            let parts = item.date.split(/[-/]/);
+            if (parts.length >= 3) {
+              day = parseInt(parts[0].length === 4 ? parts[2] : parts[0], 10);
+            }
+          }
+
+          if (day >= 1 && day <= lastDay) {
+            let targetWeek = weeklyData.find(w => day >= w.start && day <= w.end);
+            if (targetWeek) {
+              if (type.includes("รายรับ") || type.includes("รับ") || type.includes("income")) {
+                targetWeek.income += amt;
+              } else if (amt > 0) {
+                targetWeek.expense += amt;
+              }
+            }
+          }
+        });
+      }
+
+      // คำนวณคงเหลือ
+      const container = document.getElementById('weeklyContainer');
+      container.innerHTML = '';
+
+      weeklyData.forEach((w) => {
+        // ถ้าระบุช่วงวันเกินวันจริงของเดือน (เช่น อาทิตย์ที่ 5 ในเดือนที่มี 28 วัน) ไม่ต้องแสดง
+        if (w.start > lastDay) return;
+
+        let net = w.income - w.expense;
+        let isPositive = net >= 0;
+        let netColor = isPositive ? "text-emerald-500" : "text-rose-500";
+        let netBg = isPositive ? "bg-emerald-50" : "bg-rose-50";
+        let statusText = isPositive ? "เหลือเก็บ" : "ใช้เกิน";
+
+        let html = `
+          <div class="p-3 rounded-2xl bg-gray-50 flex items-center justify-between border border-gray-100">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-sm text-gray-800">${w.label}</span>
+                <span class="text-[10px] text-gray-400">(${w.start}-${w.end} ${thaiMonths[month]})</span>
+              </div>
+              <div class="text-[11px] text-gray-400 mt-0.5">
+                รับ ฿${w.income.toLocaleString()} | จ่าย ฿${w.expense.toLocaleString()}
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${netBg} ${netColor}">
+                ${statusText} ฿${Math.abs(net).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        `;
+        container.innerHTML += html;
+      });
     }
 
     async function loadAnalysisData(selectedDate = new Date()) {
@@ -250,16 +359,23 @@
         cleanName = cleanDisplayName("Peerapat");
       }
 
-      // ตั้งค่าเริ่มต้นให้ Date Picker
+      // อัปเดต Date Picker ทุกอัน
       const currentYYYY = selectedDate.getFullYear();
       const currentMM = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const formattedMonth = `${currentYYYY}-${currentMM}`;
       
+      document.getElementById('weeklyDatePicker').value = formattedMonth;
       document.getElementById('barDatePicker').value = formattedMonth;
       document.getElementById('pieDatePicker').value = formattedMonth;
 
-      const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-      
+      document.getElementById('weeklyMonthText').innerText = `ประจำเดือน ${thaiFullMonths[selectedDate.getMonth()]} ${selectedDate.getFullYear() + 543}`;
+
+      // ดึงข้อมูลเดือนปัจจุบันเพื่อทำ สรุปรายสัปดาห์
+      let currentSheet = `${cleanName}_${currentMM}-${currentYYYY}`;
+      let currentMonthItems = await fetchSheetData(currentSheet);
+      processWeeklySummary(currentMonthItems, selectedDate);
+
+      // ดึงข้อมูล 6 เดือนย้อนหลังสำหรับ Bar Chart & Pie Chart
       let monthLabels = [];
       let monthlyExpenses = [];
       let monthlyIncomes = [];
@@ -273,7 +389,7 @@
         monthLabels.push(`${thaiMonths[d.getMonth()]}`);
         
         let targetSheet = `${cleanName}_${mm}-${yyyy}`;
-        let items = await fetchSheetData(targetSheet);
+        let items = (i === 0) ? currentMonthItems : await fetchSheetData(targetSheet);
 
         let totalInc = 0;
         let totalExp = 0;
@@ -287,8 +403,11 @@
               totalInc += amt;
             } else if (amt > 0) {
               totalExp += amt;
-              let cat = (item.category || item.note || 'อื่นๆ').trim();
-              allCategoriesMap[cat] = (allCategoriesMap[cat] || 0) + amt;
+              // รวมหมวดหมู่เฉพาะเดือนปัจจุบันที่เลือก
+              if (i === 0) {
+                let cat = (item.category || item.note || 'อื่นๆ').trim();
+                allCategoriesMap[cat] = (allCategoriesMap[cat] || 0) + amt;
+              }
             }
           });
         }
@@ -299,6 +418,7 @@
 
       renderBarChart(monthLabels, monthlyExpenses, monthlyIncomes);
 
+      // เฉลี่ยรายรับ/รายจ่าย
       let activeMonthsCount = 0;
       for (let i = 0; i < 6; i++) {
         if (monthlyExpenses[i] > 0 || monthlyIncomes[i] > 0) {
@@ -326,7 +446,7 @@
       renderPieChart(pieCategories, pieAmounts);
     }
 
-    window.onload = () => loadAnalysisData();
+    window.onload = () => loadAnalysisData(currentDate);
   </script>
 </body>
 </html>
