@@ -14,6 +14,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <style>
+    html, body {
+      overscroll-behavior: none; /* ป้องกันหน้าจอด้านหลังเด้ง/ขยับเวลาไถหน้าจอ */
+      -webkit-tap-highlight-color: transparent; /* ลบไฮไลท์สีฟ้าเวลาแตะบนมือถือ */
+    }
     body { 
       font-family: 'Prompt', sans-serif; 
       background-color: #F8F9FA; 
@@ -30,11 +34,14 @@
 
     /* Drag & Drop Styles */
     .draggable-card {
-      touch-action: none; /* ป้องกันการ scroll หน้าจอขณะลากกล่อง */
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+    .drag-handle {
+      touch-action: none; /* จำกัดการลากให้เกิดเฉพาะตรงไอคอนจับเท่านั้น */
+      cursor: grab;
+    }
     .dragging {
-      opacity: 0.8;
+      opacity: 0.85;
       scale: 1.02;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
       z-index: 50;
@@ -58,7 +65,7 @@
         </div>
       </div>
 
-      <!-- สรุปตัวเลขเงินคงเหลือจริง (การ์ดเข้ม + สีตัวเลขตามแบบรูปถ่าย) -->
+      <!-- สรุปตัวเลขเงินคงเหลือจริง -->
       <div class="p-4 rounded-2xl bg-[#0F172A] text-white space-y-3 shadow-md">
         <div class="flex justify-between items-center text-xs text-gray-400">
           <span>เงินในระบบคงเหลือทั้งหมด</span>
@@ -88,7 +95,7 @@
         </div>
       </div>
 
-      <!-- Total Progress Bar (ธีมสีชมพู #E6007E) -->
+      <!-- Total Progress Bar -->
       <div class="space-y-1.5 pt-1">
         <div class="flex justify-between text-xs font-medium">
           <span class="text-gray-500">ความคืบหน้าการจ่ายทั้งหมด</span>
@@ -101,14 +108,14 @@
     </div>
 
     <!-- ปุ่มเปิด Modal ตั้งเป้าหมายใหม่ -->
-    <button onclick="openModal()" class="w-full bg-white border border-gray-200 hover:border-[#E6007E] text-gray-700 hover:text-[#E6007E] font-medium py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm">
+    <button onclick="openModal()" class="w-full bg-white border border-gray-200 hover:border-[#E6007E] text-gray-700 hover:text-[#E6007E] font-medium py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98">
       <span class="text-lg font-bold text-[#E6007E]">+</span> ตั้งเป้าหมาย / ค่างวดใหม่
     </button>
 
     <!-- รายการเป้าหมายทั้งหมด -->
     <div class="space-y-3">
       <div class="flex justify-between items-center px-1">
-        <h3 class="font-bold text-gray-900 text-sm">รายการเป้าหมาย & ค่างวด <span class="text-[10px] text-gray-400 font-normal">(จิ้มค้างเพื่อลากเรียง)</span></h3>
+        <h3 class="font-bold text-gray-900 text-sm">รายการเป้าหมาย & ค่างวด <span class="text-[10px] text-gray-400 font-normal">(จับปุ่ม ⣿ เพื่อลากเรียง)</span></h3>
         <span id="loadingStatus" class="text-xs text-gray-400">กำลังโหลด...</span>
       </div>
       
@@ -359,7 +366,7 @@
         const card = document.createElement('div');
         card.dataset.id = goal.id;
         card.dataset.index = index;
-        card.className = `draggable-card bg-white p-4 rounded-3xl shadow-sm border ${isPaid ? 'border-emerald-200 bg-emerald-50/20' : 'border-gray-100'} space-y-3 relative cursor-grab active:cursor-grabbing`;
+        card.className = `draggable-card bg-white p-4 rounded-3xl shadow-sm border ${isPaid ? 'border-emerald-200 bg-emerald-50/20' : 'border-gray-100'} space-y-3 relative`;
         
         let buttonHtml = '';
         if (isPaid) {
@@ -385,7 +392,7 @@
         card.innerHTML = `
           <div class="flex justify-between items-start gap-2">
             <div class="flex items-start gap-2">
-              <span class="text-gray-300 cursor-grab text-base select-none mt-0.5">⣿</span>
+              <span class="drag-handle text-gray-400 p-1 rounded hover:bg-gray-100 text-base select-none mt-0.5">⣿</span>
               <div>
                 <div class="flex items-center gap-2">
                   <h4 class="font-bold text-sm ${isPaid ? 'line-through text-gray-400' : 'text-gray-900'}">${goal.title}</h4>
@@ -419,7 +426,6 @@
           </div>
         `;
 
-        // เปิดระบบ Drag & Touch
         enableDragAndTouch(card, container);
         container.appendChild(card);
       });
@@ -439,20 +445,22 @@
       document.getElementById('totalProgressBar').style.width = `${overallPercent}%`;
     }
 
-    // ฟังก์ชันจัดการ Animation ลากย้ายตำแหน่ง
+    // ฟังก์ชันจัดการ Drag & Drop แบบล็อกไม่ให้หน้าขยับ
     function enableDragAndTouch(card, container) {
       let touchStartY = 0;
       let currentY = 0;
       let activeCard = null;
+      const handle = card.querySelector('.drag-handle');
 
-      card.addEventListener('touchstart', (e) => {
-        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+      if (!handle) return;
+
+      handle.addEventListener('touchstart', (e) => {
         activeCard = card;
         touchStartY = e.touches[0].clientY;
         card.classList.add('dragging');
       }, { passive: true });
 
-      card.addEventListener('touchmove', (e) => {
+      handle.addEventListener('touchmove', (e) => {
         if (!activeCard) return;
         currentY = e.touches[0].clientY;
         const deltaY = currentY - touchStartY;
@@ -472,15 +480,16 @@
         }
       }, { passive: true });
 
-      card.addEventListener('touchend', () => {
+      const stopDrag = () => {
         if (!activeCard) return;
         activeCard.style.transform = '';
         activeCard.classList.remove('dragging');
         activeCard = null;
-
-        // อัปเดตอันดับใหม่ลง LocalStorage
         updateGoalsOrder();
-      });
+      };
+
+      handle.addEventListener('touchend', stopDrag);
+      handle.addEventListener('touchcancel', stopDrag);
     }
 
     function updateGoalsOrder() {
