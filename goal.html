@@ -14,13 +14,30 @@
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <style>
-    body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; }
-    .nav-active { color: #007AFF; font-weight: 600; }
+    body { 
+      font-family: 'Prompt', sans-serif; 
+      background-color: #F8F9FA; 
+      -webkit-user-select: none;
+      user-select: none; /* ป้องกันการคลุมดำคัดลอกข้อความเวลาจิ้มค้าง */
+    }
+    .nav-active { color: #E6007E; font-weight: 600; }
     
     input[type="month"]::-webkit-calendar-picker-indicator,
     input[type="date"]::-webkit-calendar-picker-indicator {
       cursor: pointer;
       opacity: 0.6;
+    }
+
+    /* Drag & Drop Styles */
+    .draggable-card {
+      touch-action: none; /* ป้องกันการ scroll หน้าจอขณะลากกล่อง */
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .dragging {
+      opacity: 0.8;
+      scale: 1.02;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+      z-index: 50;
     }
   </style>
 </head>
@@ -28,7 +45,7 @@
 
   <div class="p-4 space-y-4">
     
-    <!-- Section สรุปภาพรวมทางการเงิน -->
+    <!-- Section สรุปภาพรวมทางการเงิน (ธีมสีตามรูปภาพตัวอย่าง) -->
     <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
       <div class="flex justify-between items-center">
         <div>
@@ -41,20 +58,20 @@
         </div>
       </div>
 
-      <!-- สรุปตัวเลขเงินคงเหลือจริง -->
-      <div class="p-4 rounded-2xl bg-gray-900 text-white space-y-3">
+      <!-- สรุปตัวเลขเงินคงเหลือจริง ถอดแบบสีจากภาพตัวอย่าง -->
+      <div class="p-4 rounded-2xl bg-[#0F172A] text-white space-y-3 shadow-md">
         <div class="flex justify-between items-center text-xs text-gray-400">
           <span>เงินในระบบคงเหลือทั้งหมด</span>
-          <span id="netBalanceText" class="font-semibold text-white">฿0</span>
+          <span id="netBalanceText" class="font-bold text-[#3B82F6]">฿0</span>
         </div>
         <div class="pt-2 border-t border-gray-800 flex justify-between items-end">
           <div>
             <p class="text-[11px] text-gray-400">เงินคงเหลือจริง (หลังหักจ่ายค่างวดแล้ว)</p>
-            <h2 id="remainingAfterPaidText" class="text-2xl font-bold text-emerald-400 mt-0.5">฿0</h2>
+            <h2 id="remainingAfterPaidText" class="text-2xl font-bold text-[#34D399] mt-0.5">฿0</h2>
           </div>
           <div class="text-right">
             <p class="text-[11px] text-gray-400">จ่ายไปแล้วรวม</p>
-            <p id="paidTotalText" class="text-sm font-semibold text-[#007AFF]">฿0</p>
+            <p id="paidTotalText" class="text-sm font-bold text-[#E6007E]">฿0</p>
           </div>
         </div>
       </div>
@@ -75,27 +92,27 @@
       <div class="space-y-1.5 pt-1">
         <div class="flex justify-between text-xs font-medium">
           <span class="text-gray-500">ความคืบหน้าการจ่ายค่างวดรวม</span>
-          <span id="totalPercentText" class="text-[#007AFF] font-semibold">0%</span>
+          <span id="totalPercentText" class="text-[#E6007E] font-semibold">0%</span>
         </div>
         <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-          <div id="totalProgressBar" class="bg-[#007AFF] h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+          <div id="totalProgressBar" class="bg-[#E6007E] h-full rounded-full transition-all duration-500" style="width: 0%"></div>
         </div>
       </div>
     </div>
 
     <!-- ปุ่มเปิด Modal ตั้งเป้าหมายใหม่ -->
-    <button onclick="openModal()" class="w-full bg-white border border-gray-200 hover:border-[#007AFF] text-gray-700 hover:text-[#007AFF] font-medium py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm">
-      <span class="text-lg font-bold text-[#007AFF]">+</span> ตั้งเป้าหมาย / ค่างวดใหม่
+    <button onclick="openModal()" class="w-full bg-white border border-gray-200 hover:border-[#E6007E] text-gray-700 hover:text-[#E6007E] font-medium py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm">
+      <span class="text-lg font-bold text-[#E6007E]">+</span> ตั้งเป้าหมาย / ค่างวดใหม่
     </button>
 
     <!-- รายการเป้าหมายทั้งหมด -->
     <div class="space-y-3">
       <div class="flex justify-between items-center px-1">
-        <h3 class="font-bold text-gray-900 text-sm">รายการเป้าหมาย & ค่างวด</h3>
+        <h3 class="font-bold text-gray-900 text-sm">รายการเป้าหมาย & ค่างวด <span class="text-[10px] text-gray-400 font-normal">(จิ้มค้างเพื่อลากเรียง)</span></h3>
         <span id="loadingStatus" class="text-xs text-gray-400">กำลังโหลด...</span>
       </div>
       
-      <div id="goalList" class="space-y-3">
+      <div id="goalList" class="space-y-3 min-h-[50px]">
         <!-- รายการแสดงผลผ่าน JS -->
       </div>
     </div>
@@ -113,22 +130,22 @@
       <form id="goalForm" onsubmit="saveGoal(event)" class="space-y-3">
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">ชื่อรายการ</label>
-          <input type="text" id="goalTitle" required placeholder="เช่น ค่าเน็ตบ้าน, ค่างวดรถ" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#007AFF]">
+          <input type="text" id="goalTitle" required placeholder="เช่น ค่าเน็ตบ้าน, ค่างวดรถ" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#E6007E]">
         </div>
 
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">ยอดเป้าหมาย (บาท)</label>
-          <input type="number" id="goalTarget" required placeholder="เช่น 590" min="1" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#007AFF]">
+          <input type="number" id="goalTarget" required placeholder="เช่น 590" min="1" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#E6007E]">
         </div>
 
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">วันกำหนดจ่าย / ครบกำหนด (ถ้ามี)</label>
-          <input type="date" id="goalDueDate" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#007AFF]">
+          <input type="date" id="goalDueDate" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#E6007E]">
         </div>
 
         <div class="pt-2 flex gap-2">
           <button type="button" onclick="closeModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium">ยกเลิก</button>
-          <button type="submit" class="flex-1 py-2.5 bg-[#007AFF] text-white rounded-xl text-sm font-medium shadow-sm hover:bg-blue-600">บันทึก</button>
+          <button type="submit" class="flex-1 py-2.5 bg-[#E6007E] text-white rounded-xl text-sm font-medium shadow-sm">บันทึก</button>
         </div>
       </form>
     </div>
@@ -186,10 +203,10 @@
       return saved ? JSON.parse(saved) : defaultGoals;
     }
 
-    function saveStoredGoals(date, goals) {
+    function saveStoredGoals(date, goals, reRender = true) {
       const key = getMonthKey(date);
       localStorage.setItem(key, JSON.stringify(goals));
-      calculateAndRender();
+      if (reRender) calculateAndRender();
     }
 
     function onMonthChange(val) {
@@ -219,12 +236,6 @@
 
       const goals = getStoredGoals(selectedDate);
       goals.push({ id: Date.now(), title, target, dueDate, isPaid: false });
-
-      goals.sort((a, b) => {
-        if (!a.dueDate) return 1;
-        if (!b.dueDate) return -1;
-        return new Date(a.dueDate) - new Date(b.dueDate);
-      });
 
       saveStoredGoals(selectedDate, goals);
       closeModal();
@@ -305,7 +316,6 @@
 
       let totalTarget = 0;
       let totalPaidAmount = 0;
-
       let remainingForGoals = availableBalance;
 
       goals.forEach(g => {
@@ -325,7 +335,7 @@
         `;
       }
 
-      goals.forEach(goal => {
+      goals.forEach((goal, index) => {
         const isPaid = !!goal.isPaid;
         let filledAmount = 0;
 
@@ -347,18 +357,20 @@
         const isFull = percent >= 100;
 
         const card = document.createElement('div');
-        card.className = `bg-white p-4 rounded-3xl shadow-sm border ${isPaid ? 'border-emerald-200 bg-emerald-50/20' : 'border-gray-100'} space-y-3 transition-all`;
+        card.dataset.id = goal.id;
+        card.dataset.index = index;
+        card.className = `draggable-card bg-white p-4 rounded-3xl shadow-sm border ${isPaid ? 'border-emerald-200 bg-emerald-50/20' : 'border-gray-100'} space-y-3 relative cursor-grab active:cursor-grabbing`;
         
         let buttonHtml = '';
         if (isPaid) {
           buttonHtml = `
-            <button onclick="togglePaidStatus(${goal.id}, true)" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500 text-white shadow-sm transition-all hover:bg-emerald-600">
+            <button onclick="togglePaidStatus(${goal.id}, true)" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#34D399] text-white shadow-sm transition-all hover:bg-emerald-500">
               ✓ จ่ายแล้ว
             </button>
           `;
         } else if (isFull) {
           buttonHtml = `
-            <button onclick="togglePaidStatus(${goal.id}, true)" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500 text-white shadow-sm transition-all hover:bg-emerald-600 animate-pulse">
+            <button onclick="togglePaidStatus(${goal.id}, true)" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#34D399] text-white shadow-sm transition-all hover:bg-emerald-500 animate-pulse">
               ✓ จ่ายเลย
             </button>
           `;
@@ -372,14 +384,17 @@
 
         card.innerHTML = `
           <div class="flex justify-between items-start gap-2">
-            <div>
-              <div class="flex items-center gap-2">
-                <h4 class="font-bold text-sm ${isPaid ? 'line-through text-gray-400' : 'text-gray-900'}">${goal.title}</h4>
-                ${goal.dueDate ? `<span class="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">ครบกำหนด ${formatDateTH(goal.dueDate)}</span>` : ''}
+            <div class="flex items-start gap-2">
+              <span class="text-gray-300 cursor-grab text-base select-none mt-0.5">⣿</span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h4 class="font-bold text-sm ${isPaid ? 'line-through text-gray-400' : 'text-gray-900'}">${goal.title}</h4>
+                  ${goal.dueDate ? `<span class="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">ครบกำหนด ${formatDateTH(goal.dueDate)}</span>` : ''}
+                </div>
+                <p class="text-xs text-gray-400 mt-1">
+                  ยอดค่างวด: <span class="font-semibold text-gray-800">฿${goal.target.toLocaleString('th-TH')}</span>
+                </p>
               </div>
-              <p class="text-xs text-gray-400 mt-1">
-                ยอดค่างวด: <span class="font-semibold text-gray-800">฿${goal.target.toLocaleString('th-TH')}</span>
-              </p>
             </div>
 
             <div class="flex items-center gap-1.5">
@@ -393,20 +408,23 @@
           <!-- Progress Bar ของเป้าหมายนี้ -->
           <div class="space-y-1">
             <div class="flex justify-between text-[11px] font-medium">
-              <span class="${isPaid || isFull ? 'text-emerald-600 font-semibold' : 'text-gray-500'}">
+              <span class="${isPaid || isFull ? 'text-[#34D399] font-semibold' : 'text-gray-500'}">
                 ${isPaid ? 'จ่ายเรียบร้อยแล้ว' : `สะสมได้ ฿${filledAmount.toLocaleString('th-TH')}`}
               </span>
               <span class="text-gray-400">${percent}%</span>
             </div>
             <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-              <div class="${isPaid || isFull ? 'bg-emerald-500' : 'bg-[#007AFF]'} h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+              <div class="${isPaid || isFull ? 'bg-[#34D399]' : 'bg-[#E6007E]'} h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
             </div>
           </div>
         `;
 
+        // เปิดระบบ Drag & Touch
+        enableDragAndTouch(card, container);
         container.appendChild(card);
       });
 
+      // สรุปผลตัวเลขการเงินภาพรวม
       const pendingTotal = totalTarget - totalPaidAmount;
       const remainingAfterPaid = availableBalance - totalPaidAmount;
       const overallPercent = totalTarget > 0 ? Math.min(100, Math.round((totalPaidAmount / totalTarget) * 100)) : 0;
@@ -419,6 +437,65 @@
       
       document.getElementById('totalPercentText').innerText = `${overallPercent}%`;
       document.getElementById('totalProgressBar').style.width = `${overallPercent}%`;
+    }
+
+    // ฟังก์ชันจัดการ Animation ลากย้ายตำแหน่ง (Drag & Touch Event)
+    function enableDragAndTouch(card, container) {
+      let touchStartY = 0;
+      let currentY = 0;
+      let activeCard = null;
+
+      card.addEventListener('touchstart', (e) => {
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+        activeCard = card;
+        touchStartY = e.touches[0].clientY;
+        card.classList.add('dragging');
+      }, { passive: true });
+
+      card.addEventListener('touchmove', (e) => {
+        if (!activeCard) return;
+        currentY = e.touches[0].clientY;
+        const deltaY = currentY - touchStartY;
+        
+        activeCard.style.transform = `translateY(${deltaY}px)`;
+
+        const siblings = [...container.querySelectorAll('.draggable-card:not(.dragging)')];
+        const nextSibling = siblings.find(sibling => {
+          const box = sibling.getBoundingClientRect();
+          return currentY < box.top + box.height / 2;
+        });
+
+        if (nextSibling) {
+          container.insertBefore(activeCard, nextSibling);
+        } else {
+          container.appendChild(activeCard);
+        }
+      }, { passive: true });
+
+      card.addEventListener('touchend', () => {
+        if (!activeCard) return;
+        activeCard.style.transform = '';
+        activeCard.classList.remove('dragging');
+        activeCard = null;
+
+        // อัปเดตอันดับใหม่ลง LocalStorage
+        updateGoalsOrder();
+      });
+    }
+
+    function updateGoalsOrder() {
+      const container = document.getElementById('goalList');
+      const cards = container.querySelectorAll('.draggable-card');
+      const currentGoals = getStoredGoals(selectedDate);
+      
+      const newOrderGoals = [];
+      cards.forEach(card => {
+        const id = parseInt(card.dataset.id);
+        const goalObj = currentGoals.find(g => g.id === id);
+        if (goalObj) newOrderGoals.push(goalObj);
+      });
+
+      saveStoredGoals(selectedDate, newOrderGoals, false);
     }
 
     window.onload = () => {
