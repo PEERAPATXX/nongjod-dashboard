@@ -35,13 +35,14 @@
     /* Drag & Drop Styles */
     .draggable-card {
       transition: transform 0.15s ease, box-shadow 0.15s ease;
+      touch-action: none; /* ล็อกการเลื่อนหน้าจอระดับองค์ประกอบ */
     }
     .drag-handle {
-      touch-action: none; /* ล็อกไม่ให้การแตะส่วนนี้ส่งผลกับการสกรอลล์หน้าเว็บ */
+      touch-action: none;
       cursor: grab;
     }
     .dragging {
-      opacity: 0.9;
+      opacity: 0.95;
       scale: 1.02;
       box-shadow: 0 12px 28px -5px rgba(0, 0, 0, 0.25);
       z-index: 50;
@@ -120,6 +121,7 @@
         <span id="loadingStatus" class="text-xs text-gray-400">กำลังโหลด...</span>
       </div>
       
+      <!-- Container จำกัดขอบเขตการลาก -->
       <div id="goalList" class="space-y-3 min-h-[50px] relative">
         <!-- รายการแสดงผลผ่าน JS -->
       </div>
@@ -446,38 +448,50 @@
       document.getElementById('totalProgressBar').style.width = `${overallPercent}%`;
     }
 
-    // ฟังก์ชัน Drag & Drop ล็อกการลากไม่ให้ไปกระตุ้น Pull-to-refresh หรือการปิดแอป
+    // ฟังก์ชัน Drag & Drop บล็อกขอบเขตบน-ล่าง ไม่ให้ทะลุออกนอก container
     function enableDragAndDrop(card, container) {
       const handle = card.querySelector('.drag-handle');
       if (!handle) return;
 
       let isDragging = false;
       let startY = 0;
-      let cardStartY = 0;
+      let initialTop = 0;
 
       handle.addEventListener('pointerdown', (e) => {
         isDragging = true;
-        handle.setPointerCapture(e.pointerId); // ล็อกพอยเตอร์ให้เกาะติดกับตัวไอคอนตลอดการลาก
-        
+        handle.setPointerCapture(e.pointerId);
+
+        const containerRect = container.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+
         startY = e.clientY;
-        const rect = card.getBoundingClientRect();
-        cardStartY = rect.top;
+        initialTop = cardRect.top - containerRect.top;
 
         card.classList.add('dragging');
+        document.body.style.overflow = 'hidden'; // ล็อกไม่ให้หน้าเว็บสกรอลล์
       });
 
       handle.addEventListener('pointermove', (e) => {
         if (!isDragging) return;
         
-        // ป้องกันไม่ให้เบราว์เซอร์ทำการ Swipe To Close หรือ Refresh หน้าจอ
         if (e.cancelable) e.preventDefault();
 
+        const containerRect = container.getBoundingClientRect();
+        const cardHeight = card.offsetHeight;
         const currentY = e.clientY;
         const deltaY = currentY - startY;
 
-        card.style.transform = `translateY(${deltaY}px)`;
+        let newTop = initialTop + deltaY;
 
-        // หาตำแหน่งที่จะแทรกการ์ด
+        // 🛑 ล็อกไม่ให้หลุดขอบบน (0) และขอบล่างของ Container
+        const maxTop = containerRect.height - cardHeight;
+        if (newTop < 0) newTop = 0;
+        if (newTop > maxTop) newTop = maxTop;
+
+        const clampedDeltaY = newTop - initialTop;
+        card.style.transform = `translateY(${clampedDeltaY}px)`;
+
+        // หาตำแหน่งแทรกเรียงการ์ดใหม่
         const siblings = [...container.querySelectorAll('.draggable-card:not(.dragging)')];
         const nextSibling = siblings.find(sibling => {
           const box = sibling.getBoundingClientRect();
@@ -501,6 +515,8 @@
 
         card.style.transform = '';
         card.classList.remove('dragging');
+        document.body.style.overflow = ''; // คืนค่าการสกรอลล์ปกติ
+        
         updateGoalsOrder();
       };
 
