@@ -22,50 +22,59 @@
       cursor: pointer;
       opacity: 0.6;
     }
+
+    /* Style สำหรับ Card ตอนกำลังลาก */
+    .dragging {
+      opacity: 0.4;
+      transform: scale(0.98);
+    }
+    .drag-over {
+      border-2 border-dashed border-[#E6007E] !important;
+    }
   </style>
 </head>
 <body class="max-w-md mx-auto min-h-screen text-gray-800 pb-28">
 
   <div class="p-4 space-y-4">
     
-    <!-- Section สรุปภาพรวมทางการเงิน (ปรับธีมสีชมพูตามธีมน้องจด) -->
+    <!-- Section สรุปภาพรวมทางการเงิน (ปรับธีมสีชมพูล้วนสดใส) -->
     <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 space-y-4">
       <div class="flex justify-between items-center">
         <div>
           <h1 class="font-bold text-lg text-gray-900">เป้าหมายประจำเดือน</h1>
           <p class="text-xs text-gray-400">วางแผนและติดตามค่างวด</p>
         </div>
-        <div class="relative flex items-center bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1 text-xs font-medium text-gray-600">
+        <div class="relative flex items-center bg-pink-50 border border-pink-100 rounded-xl px-2.5 py-1 text-xs font-medium text-[#E6007E]">
           <span class="mr-1">📅</span>
-          <input type="month" id="monthPicker" onchange="onMonthChange(this.value)" class="bg-transparent focus:outline-none cursor-pointer text-xs text-gray-600">
+          <input type="month" id="monthPicker" onchange="onMonthChange(this.value)" class="bg-transparent focus:outline-none cursor-pointer text-xs text-[#E6007E] font-semibold">
         </div>
       </div>
 
-      <!-- สรุปตัวเลขเงินคงเหลือจริง (เปลี่ยนจากดำเป็นเกรเดียนต์ชมพู #E6007E) -->
-      <div class="p-5 rounded-2xl bg-gradient-to-br from-[#E6007E] via-[#c2006a] to-[#990054] text-white space-y-3 shadow-md shadow-pink-200/50">
-        <div class="flex justify-between items-center text-xs text-pink-100/90">
+      <!-- สรุปตัวเลขเงินคงเหลือจริง (สีชมพูล้วน #E6007E ไม่มีสีดำผสม) -->
+      <div class="p-5 rounded-2xl bg-gradient-to-br from-[#FF3B9A] via-[#E6007E] to-[#C4006B] text-white space-y-3 shadow-lg shadow-pink-200">
+        <div class="flex justify-between items-center text-xs text-pink-100">
           <span>เงินในระบบคงเหลือทั้งหมด</span>
           <span id="netBalanceText" class="font-semibold text-white">฿0</span>
         </div>
-        <div class="pt-2 border-t border-pink-400/30 flex justify-between items-end">
+        <div class="pt-2 border-t border-pink-300/40 flex justify-between items-end">
           <div>
-            <p class="text-[11px] text-pink-100/80">เงินคงเหลือจริง (หลังหักจ่ายค่างวดแล้ว)</p>
-            <h2 id="remainingAfterPaidText" class="text-2xl font-bold text-amber-200 mt-0.5">฿0</h2>
+            <p class="text-[11px] text-pink-100">เงินคงเหลือจริง (หลังหักจ่ายค่างวดแล้ว)</p>
+            <h2 id="remainingAfterPaidText" class="text-2xl font-bold text-white mt-0.5">฿0</h2>
           </div>
           <div class="text-right">
-            <p class="text-[11px] text-pink-100/80">จ่ายไปแล้วรวม</p>
-            <p id="paidTotalText" class="text-sm font-bold text-white">฿0</p>
+            <p class="text-[11px] text-pink-100">จ่ายไปแล้วรวม</p>
+            <p id="paidTotalText" class="text-sm font-bold text-pink-100">฿0</p>
           </div>
         </div>
       </div>
 
       <!-- รายละเอียดเป้าหมายรวม -->
       <div class="grid grid-cols-2 gap-2 text-xs pt-1">
-        <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+        <div class="p-2.5 rounded-xl bg-pink-50/50 border border-pink-100/60">
           <span class="text-gray-400">เป้าหมายรวมทั้งหมด:</span>
           <p id="totalTargetText" class="font-semibold text-gray-800 mt-0.5">฿0</p>
         </div>
-        <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-100">
+        <div class="p-2.5 rounded-xl bg-pink-50/50 border border-pink-100/60">
           <span class="text-gray-400">ยังค้างจ่ายอีก:</span>
           <p id="pendingTotalText" class="font-semibold text-amber-600 mt-0.5">฿0</p>
         </div>
@@ -77,14 +86,14 @@
           <span class="text-gray-500">ความคืบหน้าการจ่ายค่างวดรวม</span>
           <span id="totalPercentText" class="text-[#E6007E] font-semibold">0%</span>
         </div>
-        <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+        <div class="w-full bg-pink-100/60 rounded-full h-2.5 overflow-hidden">
           <div id="totalProgressBar" class="bg-[#E6007E] h-full rounded-full transition-all duration-500" style="width: 0%"></div>
         </div>
       </div>
     </div>
 
     <!-- ปุ่มเปิด Modal ตั้งเป้าหมายใหม่ -->
-    <button onclick="openModal()" class="w-full bg-white border border-gray-200 hover:border-[#E6007E] text-gray-700 hover:text-[#E6007E] font-medium py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm">
+    <button onclick="openModal()" class="w-full bg-white border border-pink-200 hover:border-[#E6007E] text-gray-700 hover:text-[#E6007E] font-medium py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm">
       <span class="text-lg font-bold text-[#E6007E]">+</span> ตั้งเป้าหมาย / ค่างวดใหม่
     </button>
 
@@ -154,6 +163,7 @@
     const WORKER_URL = "https://nongjod.hay-peerapattx-co-th.workers.dev/";
     let selectedDate = new Date();
     const defaultGoals = [];
+    let draggedIndex = null;
 
     function cleanDisplayName(name) {
       if (!name) return "User";
@@ -174,7 +184,6 @@
       return `${parseInt(dd)}/${parseInt(mm)}`;
     }
 
-    // คำนวณวันคงเหลือ และคืนค่า Badge สีเตือน
     function getDueBadgeHtml(dueDateStr, isPaid) {
       if (!dueDateStr || isPaid) return '';
       
@@ -248,19 +257,6 @@
       closeModal();
     }
 
-    // ฟังก์ชันเลื่อนลำดับขึ้น-ลง (Priority Reordering)
-    function moveGoal(index, direction) {
-      const goals = getStoredGoals(selectedDate);
-      const targetIndex = index + direction;
-      
-      if (targetIndex >= 0 && targetIndex < goals.length) {
-        const temp = goals[index];
-        goals[index] = goals[targetIndex];
-        goals[targetIndex] = temp;
-        saveStoredGoals(selectedDate, goals);
-      }
-    }
-
     function togglePaidStatus(id, canPay) {
       const goals = getStoredGoals(selectedDate);
       const targetGoal = goals.find(g => g.id === id);
@@ -277,6 +273,42 @@
         const goals = getStoredGoals(selectedDate).filter(g => g.id !== id);
         saveStoredGoals(selectedDate, goals);
       }
+    }
+
+    // --- ระบบ Drag & Drop ลากสลับลำดับ ---
+    function handleDragStart(e, index) {
+      draggedIndex = index;
+      e.currentTarget.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const card = e.currentTarget;
+      card.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+
+    function handleDrop(e, targetIndex) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('drag-over');
+      
+      if (draggedIndex !== null && draggedIndex !== targetIndex) {
+        const goals = getStoredGoals(selectedDate);
+        const movedItem = goals.splice(draggedIndex, 1)[0];
+        goals.splice(targetIndex, 0, movedItem);
+        saveStoredGoals(selectedDate, goals);
+      }
+      draggedIndex = null;
+    }
+
+    function handleDragEnd(e) {
+      e.currentTarget.classList.remove('dragging');
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
     }
 
     async function fetchNetBalanceByDate(date) {
@@ -350,7 +382,7 @@
       if (goals.length === 0) {
         container.innerHTML = `
           <div class="text-center py-8 bg-white rounded-3xl border border-gray-100">
-            <p class="text-2xl text-gray-300">🎯</p>
+            <p class="text-2xl text-pink-300">🎯</p>
             <p class="text-xs text-gray-400 mt-2">ยังไม่มีรายการเป้าหมายในเดือนนี้</p>
           </div>
         `;
@@ -378,8 +410,16 @@
         const isFull = percent >= 100;
 
         const card = document.createElement('div');
-        card.className = `bg-white p-4 rounded-3xl shadow-sm border ${isPaid ? 'border-emerald-200 bg-emerald-50/20' : 'border-gray-100'} space-y-3 transition-all`;
+        card.draggable = true;
+        card.className = `bg-white p-4 rounded-3xl shadow-sm border ${isPaid ? 'border-emerald-200 bg-emerald-50/20' : 'border-gray-100'} space-y-3 transition-all cursor-grab active:cursor-grabbing`;
         
+        // Event Listeners สำหรับ Drag & Drop
+        card.ondragstart = (e) => handleDragStart(e, idx);
+        card.ondragover = (e) => handleDragOver(e);
+        card.ondragleave = (e) => handleDragLeave(e);
+        card.ondrop = (e) => handleDrop(e, idx);
+        card.ondragend = (e) => handleDragEnd(e);
+
         let buttonHtml = '';
         if (isPaid) {
           buttonHtml = `
@@ -403,11 +443,10 @@
 
         card.innerHTML = `
           <div class="flex justify-between items-start gap-2">
-            <div class="flex items-start gap-2">
-              <!-- ปุ่มสลับลำดับ ความสำคัญ -->
-              <div class="flex flex-col gap-0.5 pt-0.5 text-gray-300">
-                <button onclick="moveGoal(${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-20"' : 'class="hover:text-gray-600"'}>▲</button>
-                <button onclick="moveGoal(${idx}, 1)" ${idx === goals.length - 1 ? 'disabled class="opacity-20"' : 'class="hover:text-gray-600"'}>▼</button>
+            <div class="flex items-center gap-2.5">
+              <!-- ปุ่มจุดสำหรับจิ้มลากสลับลำดับ (Drag Handle) -->
+              <div class="text-gray-300 hover:text-[#E6007E] text-base cursor-grab select-none px-0.5">
+                ⋮⋮
               </div>
 
               <div>
@@ -415,7 +454,7 @@
                   <h4 class="font-bold text-sm ${isPaid ? 'line-through text-gray-400' : 'text-gray-900'}">${goal.title}</h4>
                   ${getDueBadgeHtml(goal.dueDate, isPaid)}
                 </div>
-                <p class="text-xs text-gray-400 mt-1">
+                <p class="text-xs text-gray-400 mt-0.5">
                   ยอดค่างวด: <span class="font-semibold text-gray-800">฿${goal.target.toLocaleString('th-TH')}</span>
                 </p>
               </div>
