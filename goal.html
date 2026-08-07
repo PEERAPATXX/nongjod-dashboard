@@ -14,15 +14,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <style>
-    html, body {
-      overscroll-behavior-y: none;
-      -webkit-tap-highlight-color: transparent;
-    }
+    /* คืนค่าหน้าเว็บให้สกรอลล์ได้ปกติ */
     body { 
       font-family: 'Prompt', sans-serif; 
       background-color: #F8F9FA; 
-      -webkit-user-select: none;
-      user-select: none;
+      /* คืนค่าการเลือกข้อความได้ปกติ */
+      -webkit-user-select: auto;
+      user-select: auto;
     }
     .nav-active { color: #E6007E; font-weight: 600; }
     
@@ -104,6 +102,7 @@
         <span id="loadingStatus" class="text-xs text-gray-400">กำลังโหลด...</span>
       </div>
       
+      <!-- Container กลับมาเป็น Scroll Container ปกติ -->
       <div id="goalList" class="space-y-3 min-h-[50px]">
         <!-- รายการแสดงผลผ่าน JS -->
       </div>
@@ -403,7 +402,7 @@
         }
 
         const card = document.createElement('div');
-        card.className = `p-4 rounded-3xl shadow-sm border ${borderClass} ${bgClass} space-y-3 relative transition-all duration-300`;
+        card.className = `draggable-card p-4 rounded-3xl shadow-sm border ${borderClass} ${bgClass} space-y-3 relative transition-all duration-300`;
         
         let buttonHtml = '';
         if (isPaid) {
