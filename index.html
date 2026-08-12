@@ -268,38 +268,58 @@
         btnMain.className = "py-1.5 rounded-lg text-xs font-bold transition-all text-pink-600 hover:bg-pink-100/50";
       }
 
+      // โหลดการกรองวันที่แยกเฉพาะของบัญชีนั้นๆ
+      loadSavedDateFilter();
+      updateCalendarUI();
+
+      const initialDate = filterStartDate || new Date();
+      targetSheetName = getMonthYearSheetName(cleanUserName, initialDate);
+
       await fetchData();
     }
 
     function loadSavedDateFilter() {
-      const savedStart = localStorage.getItem("nongjod_filter_start");
-      const savedEnd = localStorage.getItem("nongjod_filter_end");
+      const savedStart = localStorage.getItem(`nongjod_filter_start_${currentAccountType}`);
+      const savedEnd = localStorage.getItem(`nongjod_filter_end_${currentAccountType}`);
       
       if (savedStart && savedEnd) {
         filterStartDate = new Date(savedStart);
         filterEndDate = new Date(savedEnd);
-        
-        if (filterStartDate.toDateString() === filterEndDate.toDateString()) {
-          document.getElementById("calendarLabel").innerText = `📅 ${formatThaiShortDate(filterStartDate)}`;
-        } else {
-          document.getElementById("calendarLabel").innerText = `📅 ${formatThaiShortDate(filterStartDate)} - ${formatThaiShortDate(filterEndDate)}`;
-        }
+      } else {
+        filterStartDate = null;
+        filterEndDate = null;
       }
     }
 
     function saveDateFilter(startDate, endDate) {
       if (startDate && endDate) {
-        localStorage.setItem("nongjod_filter_start", startDate.toISOString());
-        localStorage.setItem("nongjod_filter_end", endDate.toISOString());
+        localStorage.setItem(`nongjod_filter_start_${currentAccountType}`, startDate.toISOString());
+        localStorage.setItem(`nongjod_filter_end_${currentAccountType}`, endDate.toISOString());
       } else {
-        localStorage.removeItem("nongjod_filter_start");
-        localStorage.removeItem("nongjod_filter_end");
+        localStorage.removeItem(`nongjod_filter_start_${currentAccountType}`);
+        localStorage.removeItem(`nongjod_filter_end_${currentAccountType}`);
+      }
+    }
+
+    function updateCalendarUI() {
+      if (filterStartDate && filterEndDate) {
+        if (filterStartDate.toDateString() === filterEndDate.toDateString()) {
+          document.getElementById("calendarLabel").innerText = `📅 ${formatThaiShortDate(filterStartDate)}`;
+        } else {
+          document.getElementById("calendarLabel").innerText = `📅 ${formatThaiShortDate(filterStartDate)} - ${formatThaiShortDate(filterEndDate)}`;
+        }
+        if (fpInstance) fpInstance.setDate([filterStartDate, filterEndDate], false);
+      } else {
+        document.getElementById("calendarLabel").innerText = "📅 เลือกช่วงวันที่";
+        if (fpInstance) fpInstance.clear();
       }
     }
 
     async function main() {
       loadSavedDateFilter();
       initCalendarPicker();
+      updateCalendarUI();
+      
       try {
         await liff.init({ liffId: "2010951712-Th0lITIH" });
         
@@ -736,7 +756,6 @@
       btnSave.innerText = "กำลังบันทึก...";
 
       try {
-        // เปลี่ยนใช้ POST เพื่อเลี่ยงปัญหา CORS
         const response = await fetch(WORKER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -768,7 +787,7 @@
 
     async function deleteItem() {
       if (!confirm("คุณต้องการลบรายการนี้ใช่หรือไม่?")) return;
-      
+
       const btnDelete = document.getElementById("btnDelete");
       const rowIndex = document.getElementById("editRowIndex").value;
 
@@ -776,13 +795,11 @@
       btnDelete.innerText = "กำลังลบ...";
 
       try {
-        // เปลี่ยนใช้ POST เพื่อเลี่ยงปัญหา CORS
         const response = await fetch(WORKER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "delete",
-            method: "DELETE",
             rowIndex: parseInt(rowIndex, 10),
             sheetName: targetSheetName,
             accountType: currentAccountType,
@@ -797,7 +814,7 @@
         alert("ลบรายการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง (" + e.message + ")");
       } finally {
         btnDelete.disabled = false;
-        btnDelete.innerText = "🗑️ ลบ";
+        btnDelete.innerText = "ลบ";
       }
     }
   </script>
