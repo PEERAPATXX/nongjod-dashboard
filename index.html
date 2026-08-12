@@ -18,7 +18,7 @@
     body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; }
     input, select, textarea { font-size: 14px !important; }
 
-    /* Custom Flatpickr ให้จัดอยู่ตรงกลางหน้าจอ + โทนสีชมพู */
+    /* Custom Flatpickr */
     .flatpickr-calendar {
       font-family: 'Prompt', sans-serif !important;
       border-radius: 1.25rem !important;
@@ -33,7 +33,6 @@
       z-index: 99999 !important;
     }
 
-    /* ส่วนหัวปฏิทิน (Header) */
     .flatpickr-months {
       background: #E6007E !important;
       border-top-left-radius: 1.25rem !important;
@@ -52,14 +51,12 @@
       color: #ffffff !important;
     }
 
-    /* แถบชื่อวัน จ อ พ */
     span.flatpickr-weekday {
       background: #E6007E !important;
       color: #ffffff !important;
       font-weight: 600 !important;
     }
 
-    /* วันที่เลือก (Selected / Range) */
     .flatpickr-day.selected, 
     .flatpickr-day.startRange, 
     .flatpickr-day.endRange,
@@ -81,7 +78,6 @@
       background: #FBCFE8 !important;
     }
 
-    /* ฉากหลังสีมืดเวลากดเปิดปฏิทิน */
     #calendarBackdrop {
       position: fixed;
       inset: 0;
@@ -107,10 +103,21 @@
 
   <!-- Dashboard สรุปยอด -->
   <div class="bg-white p-5 rounded-2xl shadow-sm mb-4 border border-pink-100">
+    
+    <!-- ปุ่มสลับฐานข้อมูล (Primary / Secondary DB) -->
+    <div class="mb-4 bg-gray-100 p-1 rounded-xl flex text-xs font-semibold">
+      <button id="btnDbPrimary" onclick="switchDbMode('primary')" class="flex-1 py-2 rounded-lg text-center transition bg-white text-pink-600 shadow-sm">
+        🗄️ ฐานข้อมูลหลัก
+      </button>
+      <button id="btnDbSecondary" onclick="switchDbMode('secondary')" class="flex-1 py-2 rounded-lg text-center transition text-gray-500 hover:text-gray-800">
+        📂 ฐานข้อมูลรอง
+      </button>
+    </div>
+
     <div class="flex justify-between items-center mb-4">
       <h3 class="font-bold text-lg text-purple-900">📊 สรุปยอด</h3>
       
-      <!-- ปุ่มเลือกวันที่จากปฏิทินอย่างเดียว -->
+      <!-- ปุ่มเลือกวันที่จากปฏิทิน -->
       <div class="relative flex items-center">
         <button onclick="openCalendarPicker()" class="bg-pink-50 hover:bg-pink-100 border border-pink-200 text-pink-600 font-medium text-xs rounded-xl px-3 py-1.5 flex items-center gap-1.5 transition">
           <span id="calendarLabel">📅 เลือกช่วงวันที่</span>
@@ -230,6 +237,7 @@
     let rawAllItems = [];
     let targetSheetName = "";
     let cleanUserName = "";
+    let currentDbMode = "primary"; // สถานะ DB: 'primary' หรือ 'secondary'
     
     // Flatpickr States
     let fpInstance = null;
@@ -243,10 +251,34 @@
       return cleaned || "User";
     }
 
+    // กำหนดชื่อ Sheet ตาม DB ที่เลือกอยู่ (ถ้าเป็นรองจะต่อท้ายด้วย _secondary)
     function getMonthYearSheetName(cleanName, dateObj = new Date()) {
       const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
       const yyyy = dateObj.getFullYear();
-      return `${cleanName}_${mm}-${yyyy}`;
+      const baseSheet = `${cleanName}_${mm}-${yyyy}`;
+      return currentDbMode === 'secondary' ? `${baseSheet}_secondary` : baseSheet;
+    }
+
+    // สลับฐานข้อมูล หลัก / รอง
+    async function switchDbMode(mode) {
+      if (currentDbMode === mode) return;
+      currentDbMode = mode;
+
+      const btnPrimary = document.getElementById("btnDbPrimary");
+      const btnSecondary = document.getElementById("btnDbSecondary");
+
+      if (mode === 'primary') {
+        btnPrimary.className = "flex-1 py-2 rounded-lg text-center transition bg-white text-pink-600 shadow-sm";
+        btnSecondary.className = "flex-1 py-2 rounded-lg text-center transition text-gray-500 hover:text-gray-800";
+      } else {
+        btnSecondary.className = "flex-1 py-2 rounded-lg text-center transition bg-white text-purple-600 shadow-sm";
+        btnPrimary.className = "flex-1 py-2 rounded-lg text-center transition text-gray-500 hover:text-gray-800";
+      }
+
+      // รีเฟรชชื่อ Sheet และโหลดข้อมูลใหม่
+      const currentDate = filterStartDate || new Date();
+      targetSheetName = getMonthYearSheetName(cleanUserName, currentDate);
+      await fetchData();
     }
 
     function loadSavedDateFilter() {
@@ -288,7 +320,6 @@
           const profile = await liff.getProfile();
           cleanUserName = cleanDisplayName(profile.displayName);
           
-          // กำหนด Sheet ตามวันที่ถูกเลือก หรือใช้เดือนปัจจุบันถ้าไม่มีการกรอง
           const initialDate = filterStartDate || new Date();
           targetSheetName = getMonthYearSheetName(cleanUserName, initialDate);
 
@@ -351,14 +382,13 @@
       });
     }
 
-    // ตรวจสอบและสลับไปดึงข้อมูลจาก Sheet ของเดือนที่ผู้ใช้เลือกในปฏิทิน
     async function checkAndSwitchSheet(targetDate) {
       const requiredSheetName = getMonthYearSheetName(cleanUserName, targetDate);
       if (targetSheetName !== requiredSheetName) {
         targetSheetName = requiredSheetName;
-        await fetchData(); // สลับ Sheet และดึงข้อมูลใหม่
+        await fetchData();
       } else {
-        applyFilter(); // กรองเฉพาะวันที่ใน Sheet เดิม
+        applyFilter();
       }
     }
 
@@ -377,7 +407,6 @@
       saveDateFilter(null, null);
       document.getElementById("calendarLabel").innerText = "📅 เลือกช่วงวันที่";
       
-      // เมื่อกดแสดงทั้งหมด ให้สลับกลับมาดึงข้อมูลของเดือนปัจจุบัน
       const currentMonthSheet = getMonthYearSheetName(cleanUserName, new Date());
       if (targetSheetName !== currentMonthSheet) {
         targetSheetName = currentMonthSheet;
@@ -390,7 +419,9 @@
     async function fetchData() {
       try {
         document.getElementById("itemList").innerHTML = '<p class="text-center text-xs text-gray-400 py-4">กำลังโหลดรายการ...</p>';
-        const fetchUrl = targetSheetName ? `${WORKER_URL}?sheet=${encodeURIComponent(targetSheetName)}` : WORKER_URL;
+        const fetchUrl = targetSheetName 
+          ? `${WORKER_URL}?sheet=${encodeURIComponent(targetSheetName)}&db=${currentDbMode}` 
+          : `${WORKER_URL}?db=${currentDbMode}`;
         const res = await fetch(fetchUrl);
         const data = await res.json();
         
@@ -434,7 +465,7 @@
         }
 
         if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
-        if (year > 2400) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+        if (year > 2400) year -= 543;
 
         let hours = 0, minutes = 0, seconds = 0;
         if (timePart) {
@@ -466,7 +497,6 @@
     }
 
     function applyFilter() {
-      // กรองวันที่
       let filteredItems = rawAllItems.filter(item => {
         if (!filterStartDate && !filterEndDate) return true;
 
@@ -479,7 +509,6 @@
         return true;
       });
 
-      // เรียงลำดับจาก เวลาใหม่สุด ไป เก่าสุด
       filteredItems.sort((a, b) => {
         const dateA = getItemDateObj(a.date) || new Date(0);
         const dateB = getItemDateObj(b.date) || new Date(0);
@@ -695,7 +724,8 @@
             amount,
             note: category,
             date: dateStr,
-            sheetName: targetSheetName
+            sheetName: targetSheetName,
+            dbMode: currentDbMode
           })
         });
         closeModal();
@@ -724,7 +754,8 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             rowIndex: parseInt(rowIndex, 10),
-            sheetName: targetSheetName
+            sheetName: targetSheetName,
+            dbMode: currentDbMode
           })
         });
         closeModal();
