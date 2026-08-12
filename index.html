@@ -2,774 +2,155 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>สรุปยอด - น้องจด</title>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- Flatpickr Core CSS & JS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-  <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สรุปรายรับ-รายจ่าย</title>
   <style>
-    body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; }
-    input, select, textarea { font-size: 14px !important; }
-
-    /* Custom Flatpickr */
-    .flatpickr-calendar {
-      font-family: 'Prompt', sans-serif !important;
-      border-radius: 1.25rem !important;
-      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.25) !important;
-      border: 1px solid #FCE7F3 !important;
-      background: #ffffff !important;
-      position: fixed !important;
-      top: 50% !important;
-      left: 50% !important;
-      transform: translate(-50%, -50%) !important;
-      margin: 0 !important;
-      z-index: 99999 !important;
-    }
-
-    .flatpickr-months {
-      background: #E6007E !important;
-      border-top-left-radius: 1.25rem !important;
-      border-top-right-radius: 1.25rem !important;
-      padding: 6px 0 !important;
-    }
-    .flatpickr-months .flatpickr-month,
-    .flatpickr-months .flatpickr-prev-month,
-    .flatpickr-months .flatpickr-next-month {
-      color: #ffffff !important;
-      fill: #ffffff !important;
-    }
-    .flatpickr-current-month .flatpickr-monthDropdown-months,
-    .flatpickr-current-month input.cur-year {
-      font-weight: 700 !important;
-      color: #ffffff !important;
-    }
-
-    span.flatpickr-weekday {
-      background: #E6007E !important;
-      color: #ffffff !important;
-      font-weight: 600 !important;
-    }
-
-    .flatpickr-day.selected, 
-    .flatpickr-day.startRange, 
-    .flatpickr-day.endRange,
-    .flatpickr-day.selected.inRange,
-    .flatpickr-day.startRange.inRange,
-    .flatpickr-day.endRange.inRange {
-      background: #E6007E !important;
-      border-color: #E6007E !important;
-      color: #ffffff !important;
-      font-weight: bold !important;
-    }
-    .flatpickr-day.inRange {
-      background: #FCE7F3 !important;
-      border-color: #FCE7F3 !important;
-      box-shadow: -5px 0 0 #FCE7F3, 5px 0 0 #FCE7F3 !important;
-      color: #DB2777 !important;
-    }
-    .flatpickr-day:hover {
-      background: #FBCFE8 !important;
-    }
-
-    #calendarBackdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(46, 16, 101, 0.4);
-      backdrop-filter: blur(2px);
-      z-index: 99990;
-      display: none;
-    }
+    * { box-sizing: border-box; font-family: 'Sukhumvit Set', 'Segoe UI', Tahoma, sans-serif; }
+    body { background-color: #f4f6f9; margin: 0; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: #ffffff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    
+    h2 { text-align: center; color: #333; margin-top: 0; }
+    
+    /* Toggle Switch สำหรับสลับบัญชีหลัก/รอง */
+    .db-toggle { display: flex; background: #e9ecef; border-radius: 12px; padding: 4px; margin-bottom: 20px; }
+    .db-btn { flex: 1; border: none; background: transparent; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: bold; color: #6c757d; transition: 0.3s; }
+    .db-btn.active { background: #007bff; color: white; box-shadow: 0 2px 6px rgba(0,123,255,0.3); }
+    
+    /* สรุปยอดเงิน */
+    .summary-card { display: flex; justify-content: space-between; margin-bottom: 20px; gap: 10px; }
+    .card { flex: 1; padding: 15px; border-radius: 12px; text-align: center; color: white; }
+    .card.income { background: #28a745; }
+    .card.expense { background: #dc3545; }
+    .card.net { background: #17a2b8; }
+    .card h4 { margin: 0 0 5px 0; font-size: 14px; opacity: 0.9; }
+    .card p { margin: 0; font-size: 18px; font-weight: bold; }
+    
+    /* ตารางรายการ */
+    .item-list { list-style: none; padding: 0; margin: 0; }
+    .item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+    .item:last-child { border-bottom: none; }
+    .item-info { display: flex; flex-direction: column; }
+    .item-title { font-weight: bold; color: #333; }
+    .item-date { font-size: 12px; color: #888; margin-top: 2px; }
+    .item-amount { font-weight: bold; font-size: 16px; }
+    .income-text { color: #28a745; }
+    .expense-text { color: #dc3545; }
+    
+    .loading { text-align: center; padding: 20px; color: #888; }
   </style>
 </head>
-<body class="p-4 text-gray-800 max-w-md mx-auto min-h-screen pb-20">
+<body>
 
-  <!-- ฉากหลังเบลอสำหรับ Flatpickr -->
-  <div id="calendarBackdrop" onclick="closeCalendarPicker()"></div>
+<div class="container">
+  <h2>📊 สรุปรายรับ-รายจ่าย</h2>
 
-  <!-- Header Profile -->
-  <div class="flex items-center space-x-3 bg-white p-4 rounded-2xl shadow-sm mb-4 border border-pink-100">
-    <img id="userPicture" class="w-12 h-12 rounded-full border-2 border-pink-400 bg-pink-50 object-cover" src="https://via.placeholder.com/150" alt="Profile" crossorigin="anonymous">
-    <div>
-      <h2 id="userName" class="font-bold text-lg leading-tight text-gray-800">กำลังโหลด...</h2>
+  <!-- ปุ่มสลับข้อมูลบัญชีหลัก / บัญชีรอง -->
+  <div class="db-toggle">
+    <button class="db-btn active" id="btn-primary" onclick="switchDb('primary')">บัญชีหลัก (A-E)</button>
+    <button class="db-btn" id="btn-secondary" onclick="switchDb('secondary')">บัญชีรอง (G-K)</button>
+  </div>
+
+  <!-- การ์ดสรุปยอดเงิน -->
+  <div class="summary-card">
+    <div class="card income">
+      <h4>รายรับรวม</h4>
+      <p id="total-income">฿0</p>
+    </div>
+    <div class="card expense">
+      <h4>รายจ่ายรวม</h4>
+      <p id="total-expense">฿0</p>
+    </div>
+    <div class="card net">
+      <h4>คงเหลือ</h4>
+      <p id="net-total">฿0</p>
     </div>
   </div>
 
-  <!-- Dashboard สรุปยอด -->
-  <div class="bg-white p-5 rounded-2xl shadow-sm mb-4 border border-pink-100">
+  <!-- รายการธุรกรรม -->
+  <h3>รายการล่าสุด</h3>
+  <div id="loading" class="loading">กำลังโหลดข้อมูล...</div>
+  <ul id="item-list" class="item-list"></ul>
+</div>
+
+<script>
+  // ⚠️ อย่าลืมเปลี่ยน URL ตรงนี้ให้เป็น URL ของ Cloudflare Worker ของคุณ
+  const WORKER_URL = "https://your-worker.workers.dev";
+  
+  // กำหนดค่า Sheet และ DB ตั้งต้น
+  let currentSheet = "Peerapat_08-2026"; 
+  let currentDb = "primary";
+
+  // ฟังก์ชันสลับโหมดบัญชีหลัก / บัญชีรอง
+  function switchDb(dbMode) {
+    currentDb = dbMode;
     
-    <!-- ปุ่มสลับฐานข้อมูล (Primary / Secondary DB) -->
-    <div class="mb-4 bg-gray-100 p-1 rounded-xl flex text-xs font-semibold">
-      <button id="btnDbPrimary" onclick="switchDbMode('primary')" class="flex-1 py-2 rounded-lg text-center transition bg-white text-pink-600 shadow-sm">
-        🗄️ ฐานข้อมูลหลัก
-      </button>
-      <button id="btnDbSecondary" onclick="switchDbMode('secondary')" class="flex-1 py-2 rounded-lg text-center transition text-gray-500 hover:text-gray-800">
-        📂 ฐานข้อมูลรอง
-      </button>
-    </div>
-
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="font-bold text-lg text-purple-900">📊 สรุปยอด</h3>
-      
-      <!-- ปุ่มเลือกวันที่จากปฏิทิน -->
-      <div class="relative flex items-center">
-        <button onclick="openCalendarPicker()" class="bg-pink-50 hover:bg-pink-100 border border-pink-200 text-pink-600 font-medium text-xs rounded-xl px-3 py-1.5 flex items-center gap-1.5 transition">
-          <span id="calendarLabel">📅 เลือกช่วงวันที่</span>
-        </button>
-        <input type="text" id="datePickerInput" class="hidden">
-      </div>
-    </div>
-
-    <!-- ยอดคงเหลือสุทธิ -->
-    <div class="bg-[#E6007E] p-5 rounded-2xl mb-4 text-center text-white shadow-md">
-      <p class="text-xs opacity-90 mb-1 font-light">เหลือเก็บสุทธิ</p>
-      <h1 id="netTotal" class="text-3xl font-extrabold tracking-tight">฿0.00</h1>
-    </div>
-
-    <!-- การ์ดแยก รายรับ / รายจ่าย -->
-    <div class="grid grid-cols-2 gap-3 mb-5">
-      <div class="bg-sky-50 p-3.5 rounded-xl border border-sky-100 text-center">
-        <p class="text-xs text-sky-600 mb-1 font-medium">💰 รายรับรวม</p>
-        <p id="totalIncome" class="text-lg font-bold text-sky-600">฿0.00</p>
-      </div>
-      <div class="bg-pink-50 p-3.5 rounded-xl border border-pink-100 text-center">
-        <p class="text-xs text-pink-600 mb-1 font-medium">💸 รายจ่ายรวม</p>
-        <p id="totalExpense" class="text-lg font-bold text-pink-600">฿0.00</p>
-      </div>
-    </div>
-
-    <!-- แผนภูมิวงกลม -->
-    <div class="pt-2 border-t border-pink-50">
-      <p class="text-xs font-semibold text-purple-800 mb-3 text-center">สัดส่วนทางการเงิน</p>
-      <div class="w-52 h-52 mx-auto relative flex items-center justify-center">
-        <canvas id="financeChart"></canvas>
-        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-6">
-          <span class="text-[11px] text-gray-400 font-medium">รายการช่วงนี้</span>
-          <span id="totalItemsCount" class="text-2xl font-black text-purple-900 leading-none">0</span>
-          <span class="text-[10px] text-gray-400">รายการ</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bottom Navigation Bar -->
-  <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-100 px-6 py-2 flex justify-around items-center z-40 text-center text-[11px] text-gray-400">
-    <a href="index.html" class="flex flex-col items-center space-y-1 text-pink-600 font-semibold flex-1">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-      <span>สรุป</span>
-    </a>
-    <a href="analysis.html" class="flex flex-col items-center space-y-1 hover:text-gray-600 flex-1">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-      <span>วิเคราะห์</span>
-    </a>
-    <a href="goal.html" class="flex flex-col items-center space-y-1 hover:text-gray-600 flex-1">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-      <span>เป้าหมาย</span>
-    </a>
-  </div>
-
-  <!-- รายการล่าสุด -->
-  <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 border border-pink-100">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="font-bold text-lg text-gray-900">รายการล่าสุด</h3>
-      <button onclick="clearDateFilter()" class="text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-200 transition">แสดงทั้งหมด</button>
-    </div>
-
-    <div id="itemList" class="space-y-4 max-h-[500px] overflow-y-auto pr-1">
-      <p class="text-center text-xs text-gray-400 py-4">กำลังโหลดรายการ...</p>
-    </div>
-  </div>
-
-  <!-- Modal แก้ไขรายการ -->
-  <div id="editModal" class="fixed inset-0 bg-purple-950/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden z-50">
-    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-pink-100">
-      <div class="flex justify-between items-center mb-4 border-b border-pink-100 pb-3">
-        <h3 class="font-bold text-lg text-purple-900">✏️ แก้ไขรายการ</h3>
-        <button onclick="closeModal()" aria-label="Close" class="w-10 h-10 -mr-2 flex items-center justify-center rounded-full text-red-500 bg-red-50 hover:bg-red-100 active:bg-red-200 transition-colors shadow-sm">
-          <span class="text-2xl font-black leading-none">&times;</span>
-        </button>
-      </div>
-
-      <input type="hidden" id="editRowIndex">
-
-      <div class="space-y-4 text-sm">
-        <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">ประเภทรายการ</label>
-          <div class="grid grid-cols-2 gap-2">
-            <button type="button" id="btnTypeExpense" onclick="setType('รายจ่าย')" class="py-2.5 rounded-xl font-medium border text-center border-pink-500 bg-pink-50 text-pink-600">รายจ่าย</button>
-            <button type="button" id="btnTypeIncome" onclick="setType('รายรับ')" class="py-2.5 rounded-xl font-medium border text-center border-gray-200 text-gray-600">รายรับ</button>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">หมวดหมู่ / รายละเอียด</label>
-          <input type="text" id="editCategory" class="w-full p-3 border border-pink-100 rounded-xl focus:outline-none focus:border-pink-400">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">จำนวนเงิน (บาท)</label>
-          <input type="number" step="any" id="editAmount" class="w-full p-3 border border-pink-100 rounded-xl focus:outline-none focus:border-pink-400 font-bold text-pink-600">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">วันที่และเวลา</label>
-          <input type="datetime-local" id="editDate" class="w-full p-3 border border-pink-100 rounded-xl focus:outline-none focus:border-pink-400 text-gray-700 bg-white">
-        </div>
-      </div>
-
-      <div class="flex space-x-2 mt-6">
-        <button onclick="saveItem()" id="btnSave" class="flex-[2] py-3 bg-[#E6007E] hover:bg-pink-700 text-white font-semibold rounded-xl shadow-md transition disabled:opacity-50">บันทึก</button>
-        <button onclick="deleteItem()" id="btnDelete" class="flex-1 py-3 bg-red-50 hover:bg-red-100 text-red-500 font-semibold rounded-xl transition disabled:opacity-50">🗑️ ลบ</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const WORKER_URL = "https://nongjod.hay-peerapattx-co-th.workers.dev/";
-    let currentType = "รายจ่าย";
-    let myChart = null;
-    let rawAllItems = [];
-    let targetSheetName = "";
-    let cleanUserName = "";
-    let currentDbMode = "primary"; // สถานะ DB: 'primary' หรือ 'secondary'
+    // สลับ Style ของปุ่ม
+    document.getElementById("btn-primary").classList.toggle("active", dbMode === 'primary');
+    document.getElementById("btn-secondary").classList.toggle("active", dbMode === 'secondary');
     
-    // Flatpickr States
-    let fpInstance = null;
-    let filterStartDate = null;
-    let filterEndDate = null;
+    // ดึงข้อมูลใหม่
+    fetchData();
+  }
 
-    function cleanDisplayName(name) {
-      if (!name) return "User";
-      let cleaned = name.normalize("NFKD");
-      cleaned = cleaned.replace(/[^\u0E00-\u0E7F\w\s]/gi, "").trim();
-      return cleaned || "User";
-    }
+  // ฟังก์ชันดึงข้อมูลจาก Cloudflare Worker
+  async function fetchData() {
+    const listEl = document.getElementById("item-list");
+    const loadingEl = document.getElementById("loading");
+    
+    loadingEl.style.display = "block";
+    listEl.innerHTML = "";
 
-    // กำหนดชื่อ Sheet ตาม DB ที่เลือกอยู่ (ถ้าเป็นรองจะต่อท้ายด้วย _secondary)
-    function getMonthYearSheetName(cleanName, dateObj = new Date()) {
-      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const yyyy = dateObj.getFullYear();
-      const baseSheet = `${cleanName}_${mm}-${yyyy}`;
-      return currentDbMode === 'secondary' ? `${baseSheet}_secondary` : baseSheet;
-    }
+    try {
+      // ส่งพารามิเตอร์ sheet และ db ไปยัง Worker
+      const response = await fetch(`${WORKER_URL}?sheet=${encodeURIComponent(currentSheet)}&db=${currentDb}`);
+      const data = await response.json();
 
-    // สลับฐานข้อมูล หลัก / รอง
-    async function switchDbMode(mode) {
-      if (currentDbMode === mode) return;
-      currentDbMode = mode;
+      loadingEl.style.display = "none";
 
-      const btnPrimary = document.getElementById("btnDbPrimary");
-      const btnSecondary = document.getElementById("btnDbSecondary");
-
-      if (mode === 'primary') {
-        btnPrimary.className = "flex-1 py-2 rounded-lg text-center transition bg-white text-pink-600 shadow-sm";
-        btnSecondary.className = "flex-1 py-2 rounded-lg text-center transition text-gray-500 hover:text-gray-800";
-      } else {
-        btnSecondary.className = "flex-1 py-2 rounded-lg text-center transition bg-white text-purple-600 shadow-sm";
-        btnPrimary.className = "flex-1 py-2 rounded-lg text-center transition text-gray-500 hover:text-gray-800";
-      }
-
-      // รีเฟรชชื่อ Sheet และโหลดข้อมูลใหม่
-      const currentDate = filterStartDate || new Date();
-      targetSheetName = getMonthYearSheetName(cleanUserName, currentDate);
-      await fetchData();
-    }
-
-    function loadSavedDateFilter() {
-      const savedStart = localStorage.getItem("nongjod_filter_start");
-      const savedEnd = localStorage.getItem("nongjod_filter_end");
-      
-      if (savedStart && savedEnd) {
-        filterStartDate = new Date(savedStart);
-        filterEndDate = new Date(savedEnd);
-        
-        if (filterStartDate.toDateString() === filterEndDate.toDateString()) {
-          document.getElementById("calendarLabel").innerText = `📅 ${formatThaiShortDate(filterStartDate)}`;
-        } else {
-          document.getElementById("calendarLabel").innerText = `📅 ${formatThaiShortDate(filterStartDate)} - ${formatThaiShortDate(filterEndDate)}`;
-        }
-      }
-    }
-
-    function saveDateFilter(startDate, endDate) {
-      if (startDate && endDate) {
-        localStorage.setItem("nongjod_filter_start", startDate.toISOString());
-        localStorage.setItem("nongjod_filter_end", endDate.toISOString());
-      } else {
-        localStorage.removeItem("nongjod_filter_start");
-        localStorage.removeItem("nongjod_filter_end");
-      }
-    }
-
-    async function main() {
-      loadSavedDateFilter();
-      initCalendarPicker();
-      try {
-        await liff.init({ liffId: "2010951712-Th0lITIH" });
-        
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        } else {
-          const profile = await liff.getProfile();
-          cleanUserName = cleanDisplayName(profile.displayName);
-          
-          const initialDate = filterStartDate || new Date();
-          targetSheetName = getMonthYearSheetName(cleanUserName, initialDate);
-
-          document.getElementById("userName").innerText = profile.displayName || "ผู้ใช้งานน้องจด";
-          if (profile.pictureUrl) {
-            document.getElementById("userPicture").src = profile.pictureUrl;
-          }
-          await fetchData();
-        }
-      } catch (err) {
-        console.error("LIFF Init Failed:", err);
-        document.getElementById("userName").innerText = "น้องจด (ไม่ได้ต่อ LINE)";
-        cleanUserName = "Peerapat";
-        const initialDate = filterStartDate || new Date();
-        targetSheetName = getMonthYearSheetName(cleanUserName, initialDate);
-        await fetchData();
-      }
-    }
-
-    function initCalendarPicker() {
-      if (typeof flatpickr !== "undefined" && flatpickr.l10ns && flatpickr.l10ns.th) {
-        flatpickr.localize(flatpickr.l10ns.th);
-      }
-      
-      const defaultDates = (filterStartDate && filterEndDate) ? [filterStartDate, filterEndDate] : [];
-
-      fpInstance = flatpickr("#datePickerInput", {
-        mode: "range",
-        dateFormat: "Y-m-d",
-        locale: "th",
-        disableMobile: "true",
-        defaultDate: defaultDates,
-        onOpen: function(selectedDates, dateStr, instance) {
-          document.getElementById("calendarBackdrop").style.display = "block";
-          if (filterStartDate && filterEndDate) {
-            instance.setDate([filterStartDate, filterEndDate], false);
-          }
-        },
-        onClose: function() {
-          document.getElementById("calendarBackdrop").style.display = "none";
-        },
-        onChange: async function(selectedDates, dateStr, instance) {
-          if (selectedDates.length === 1) {
-            filterStartDate = new Date(selectedDates[0].getFullYear(), selectedDates[0].getMonth(), selectedDates[0].getDate(), 0, 0, 0, 0);
-            filterEndDate = new Date(selectedDates[0].getFullYear(), selectedDates[0].getMonth(), selectedDates[0].getDate(), 23, 59, 59, 999);
-            document.getElementById("calendarLabel").innerText = `📅 ${formatThaiShortDate(selectedDates[0])}`;
-            
-            saveDateFilter(filterStartDate, filterEndDate);
-            await checkAndSwitchSheet(selectedDates[0]);
-          } else if (selectedDates.length === 2) {
-            filterStartDate = new Date(selectedDates[0].getFullYear(), selectedDates[0].getMonth(), selectedDates[0].getDate(), 0, 0, 0, 0);
-            filterEndDate = new Date(selectedDates[1].getFullYear(), selectedDates[1].getMonth(), selectedDates[1].getDate(), 23, 59, 59, 999);
-            document.getElementById("calendarLabel").innerText = `📅 ${formatThaiShortDate(selectedDates[0])} - ${formatThaiShortDate(selectedDates[1])}`;
-            
-            saveDateFilter(filterStartDate, filterEndDate);
-            await checkAndSwitchSheet(selectedDates[0]);
-            instance.close();
-          }
-        }
-      });
-    }
-
-    async function checkAndSwitchSheet(targetDate) {
-      const requiredSheetName = getMonthYearSheetName(cleanUserName, targetDate);
-      if (targetSheetName !== requiredSheetName) {
-        targetSheetName = requiredSheetName;
-        await fetchData();
-      } else {
-        applyFilter();
-      }
-    }
-
-    function openCalendarPicker() {
-      if (fpInstance) fpInstance.open();
-    }
-
-    function closeCalendarPicker() {
-      if (fpInstance) fpInstance.close();
-    }
-
-    async function clearDateFilter() {
-      if (fpInstance) fpInstance.clear();
-      filterStartDate = null;
-      filterEndDate = null;
-      saveDateFilter(null, null);
-      document.getElementById("calendarLabel").innerText = "📅 เลือกช่วงวันที่";
-      
-      const currentMonthSheet = getMonthYearSheetName(cleanUserName, new Date());
-      if (targetSheetName !== currentMonthSheet) {
-        targetSheetName = currentMonthSheet;
-        await fetchData();
-      } else {
-        applyFilter();
-      }
-    }
-
-    async function fetchData() {
-      try {
-        document.getElementById("itemList").innerHTML = '<p class="text-center text-xs text-gray-400 py-4">กำลังโหลดรายการ...</p>';
-        const fetchUrl = targetSheetName 
-          ? `${WORKER_URL}?sheet=${encodeURIComponent(targetSheetName)}&db=${currentDbMode}` 
-          : `${WORKER_URL}?db=${currentDbMode}`;
-        const res = await fetch(fetchUrl);
-        const data = await res.json();
-        
-        rawAllItems = data.items || [];
-        applyFilter();
-      } catch (e) {
-        console.error("Fetch Data Error:", e);
-        document.getElementById("itemList").innerHTML = '<p class="text-center text-xs text-red-400 py-4">โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</p>';
-      }
-    }
-
-    function parseAmount(val) {
-      if (!val) return 0;
-      const cleanVal = String(val).replace(/,/g, '');
-      return parseFloat(cleanVal) || 0;
-    }
-
-    function getItemDateObj(dateStr) {
-      if (!dateStr) return null;
-      try {
-        let cleanStr = String(dateStr).trim().replace('T', ' ');
-        let [datePart, timePart] = cleanStr.split(' ');
-        let day, month, year;
-
-        if (datePart.includes('/')) {
-          const parts = datePart.split('/');
-          day = parseInt(parts[0], 10);
-          month = parseInt(parts[1], 10);
-          year = parseInt(parts[2], 10);
-        } else if (datePart.includes('-')) {
-          const parts = datePart.split('-');
-          if (parts[0].length === 4) {
-            year = parseInt(parts[0], 10);
-            month = parseInt(parts[1], 10);
-            day = parseInt(parts[2], 10);
-          } else {
-            day = parseInt(parts[0], 10);
-            month = parseInt(parts[1], 10);
-            year = parseInt(parts[2], 10);
-          }
-        }
-
-        if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
-        if (year > 2400) year -= 543;
-
-        let hours = 0, minutes = 0, seconds = 0;
-        if (timePart) {
-          const tParts = timePart.split(':');
-          hours = parseInt(tParts[0], 10) || 0;
-          minutes = parseInt(tParts[1], 10) || 0;
-          seconds = parseInt(tParts[2], 10) || 0;
-        }
-
-        return new Date(year, month - 1, day, hours, minutes, seconds);
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function formatThaiShortDate(dateObj) {
-      if (!dateObj) return "ไม่ระบุวันที่";
-      const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-      return `${dateObj.getDate()} ${months[dateObj.getMonth()]}`;
-    }
-
-    function getTimeString(dateObj, rawStr) {
-      if (dateObj) {
-        const hh = String(dateObj.getHours()).padStart(2, '0');
-        const mm = String(dateObj.getMinutes()).padStart(2, '0');
-        return `${hh}:${mm} น.`;
-      }
-      return "00:00 น.";
-    }
-
-    function applyFilter() {
-      let filteredItems = rawAllItems.filter(item => {
-        if (!filterStartDate && !filterEndDate) return true;
-
-        const itemDate = getItemDateObj(item.date);
-        if (!itemDate) return true;
-
-        const itemTime = itemDate.getTime();
-        if (filterStartDate && itemTime < filterStartDate.getTime()) return false;
-        if (filterEndDate && itemTime > filterEndDate.getTime()) return false;
-        return true;
-      });
-
-      filteredItems.sort((a, b) => {
-        const dateA = getItemDateObj(a.date) || new Date(0);
-        const dateB = getItemDateObj(b.date) || new Date(0);
-        return dateB.getTime() - dateA.getTime();
-      });
-
-      let totalIncome = 0;
-      let totalExpense = 0;
-
-      filteredItems.forEach(item => {
-        const amt = parseAmount(item.amount);
-        const itemType = String(item.type || '');
-        if (itemType.includes("รายรับ") || itemType.includes("รับ")) {
-          totalIncome += amt;
-        } else {
-          totalExpense += amt;
-        }
-      });
-
-      const netTotal = totalIncome - totalExpense;
-
-      document.getElementById("totalIncome").innerText = `฿${totalIncome.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-      document.getElementById("totalExpense").innerText = `฿${totalExpense.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-      document.getElementById("netTotal").innerText = `฿${netTotal.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-      document.getElementById("totalItemsCount").innerText = filteredItems.length.toLocaleString();
-
-      renderChart(totalIncome, totalExpense);
-      renderItemList(filteredItems);
-    }
-
-    function renderChart(income, expense) {
-      const ctx = document.getElementById('financeChart').getContext('2d');
-      if (myChart) myChart.destroy();
-
-      let chartIncome = income;
-      let chartExpense = expense;
-
-      if (income === 0 && expense === 0) {
-        chartIncome = 1; 
-      }
-
-      myChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: ['รายรับ', 'รายจ่าย'],
-          datasets: [{
-            data: [chartIncome, chartExpense],
-            backgroundColor: ['#38BDF8', '#E6007E'],
-            borderWidth: 2,
-            borderColor: '#ffffff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { font: { family: 'Prompt', size: 11 } } }
-          },
-          cutout: '75%'
-        }
-      });
-    }
-
-    function renderItemList(items) {
-      const listEl = document.getElementById("itemList");
-      if (!items || items.length === 0) {
-        listEl.innerHTML = '<p class="text-center text-xs text-gray-400 py-4">ไม่มีรายการในช่วงเวลานี้</p>';
+      if (data.error) {
+        alert("เกิดข้อผิดพลาด: " + data.error);
         return;
       }
 
-      const grouped = {};
-      const dateOrder = [];
+      // แสดงยอดสรุป
+      document.getElementById("total-income").innerText = `฿${data.totalIncome.toLocaleString()}`;
+      document.getElementById("total-expense").innerText = `฿${data.totalExpense.toLocaleString()}`;
+      document.getElementById("net-total").innerText = `฿${data.netTotal.toLocaleString()}`;
 
-      items.forEach(item => {
-        const itemDateObj = getItemDateObj(item.date);
-        const dateKey = itemDateObj ? formatThaiShortDate(itemDateObj) : "ไม่ระบุวันที่";
-        const timeKey = getTimeString(itemDateObj, item.date);
+      // แสดงรายการ
+      if (data.items.length === 0) {
+        listEl.innerHTML = '<li class="loading">ไม่มีข้อมูลในหมวดนี้</li>';
+        return;
+      }
 
-        if (!grouped[dateKey]) {
-          grouped[dateKey] = [];
-          dateOrder.push(dateKey);
-        }
-        grouped[dateKey].push({ ...item, timeOnly: timeKey });
-      });
+      data.items.forEach(item => {
+        const isIncome = item.type.includes("รายรับ");
+        const amountClass = isIncome ? "income-text" : "expense-text";
+        const amountPrefix = isIncome ? "+" : "-";
 
-      let html = "";
-      dateOrder.forEach(dateTitle => {
-        const groupItems = grouped[dateTitle];
-        html += `
-          <div class="mb-4">
-            <div class="pb-1 mb-2 border-b border-gray-100">
-              <span class="text-xs font-semibold text-gray-500">${dateTitle}</span>
-            </div>
-            <div class="space-y-2">
-        `;
-
-        groupItems.forEach(item => {
-          const itemType = String(item.type || '');
-          const isIncome = itemType.includes("รายรับ") || itemType.includes("รับ");
-          
-          const amountColor = isIncome ? "text-emerald-500" : "text-pink-500";
-          const amountSign = isIncome ? "+" : "-";
-          const numAmount = parseAmount(item.amount);
-
-          const title = item.category || item.note || 'ไม่มีชื่อรายการ';
-          const categoryBadge = item.category && item.note && item.category !== item.note ? item.category : '';
-
-          html += `
-            <div onclick='openEditModalByData(this)' 
-                 data-item='${JSON.stringify(item).replace(/'/g, "&apos;")}'
-                 class="flex justify-between items-center p-3.5 rounded-2xl border border-gray-100 bg-white shadow-xs hover:border-pink-200 cursor-pointer active:scale-98 transition">
-              <div class="space-y-1">
-                <p class="font-bold text-sm text-gray-800 leading-tight">${title}</p>
-                <div class="flex items-center space-x-2 text-[11px] text-gray-400">
-                  <span>${item.timeOnly}</span>
-                  ${categoryBadge ? `<span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-md text-[10px]">${categoryBadge}</span>` : ''}
-                </div>
-              </div>
-              <div class="flex items-center space-x-1">
-                <span class="text-base font-bold ${amountColor}">
-                  ${amountSign}฿${numAmount.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                </span>
-                <span class="text-gray-300 text-xs">❯</span>
-              </div>
-            </div>
-          `;
-        });
-
-        html += `
-            </div>
+        const li = document.createElement("li");
+        li.className = "item";
+        li.innerHTML = `
+          <div class="item-info">
+            <span class="item-title">${item.category}</span>
+            <span class="item-date">${item.date}</span>
+          </div>
+          <div class="item-amount ${amountClass}">
+            ${amountPrefix}฿${item.amount.toLocaleString()}
           </div>
         `;
+        listEl.appendChild(li);
       });
 
-      listEl.innerHTML = html;
+    } catch (err) {
+      loadingEl.innerText = "ไม่สามารถโหลดข้อมูลได้";
+      console.error(err);
     }
+  }
 
-    function parseDateToInput(dateStr) {
-      const dateObj = getItemDateObj(dateStr);
-      if (!dateObj) return '';
-      
-      const yyyy = dateObj.getFullYear();
-      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-      const dd = String(dateObj.getDate()).padStart(2, '0');
-      const hh = String(dateObj.getHours()).padStart(2, '0');
-      const min = String(dateObj.getMinutes()).padStart(2, '0');
+  // เรียกใช้งานครั้งแรกเมื่อโหลดหน้าเว็บ
+  fetchData();
+</script>
 
-      return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-    }
-
-    function openEditModalByData(el) {
-      const item = JSON.parse(el.getAttribute('data-item'));
-      openEditModal(item);
-    }
-
-    function openEditModal(item) {
-      document.getElementById("editRowIndex").value = item.rowIndex;
-      document.getElementById("editCategory").value = item.category || item.note || '';
-      document.getElementById("editAmount").value = parseAmount(item.amount);
-      document.getElementById("editDate").value = parseDateToInput(item.date);
-      setType(item.type || 'รายจ่าย');
-      document.getElementById("editModal").classList.remove("hidden");
-    }
-
-    function closeModal() {
-      document.getElementById("editModal").classList.add("hidden");
-    }
-
-    function setType(type) {
-      currentType = type;
-      const btnExpense = document.getElementById("btnTypeExpense");
-      const btnIncome = document.getElementById("btnTypeIncome");
-
-      if (type.includes("รายจ่าย") || type.includes("จ่าย")) {
-        btnExpense.className = "py-2.5 rounded-xl font-medium border text-center border-pink-500 bg-pink-50 text-pink-600";
-        btnIncome.className = "py-2.5 rounded-xl font-medium border text-center border-gray-200 text-gray-600";
-      } else {
-        btnIncome.className = "py-2.5 rounded-xl font-medium border text-center border-sky-500 bg-sky-50 text-sky-600";
-        btnExpense.className = "py-2.5 rounded-xl font-medium border text-center border-gray-200 text-gray-600";
-      }
-    }
-
-    async function saveItem() {
-      const btnSave = document.getElementById("btnSave");
-      const rowIndex = document.getElementById("editRowIndex").value;
-      const category = document.getElementById("editCategory").value;
-      const amount = parseFloat(document.getElementById("editAmount").value) || 0;
-      const rawDate = document.getElementById("editDate").value;
-
-      let dateStr = "";
-      if (rawDate) {
-        const d = new Date(rawDate);
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        const hh = String(d.getHours()).padStart(2, '0');
-        const min = String(d.getMinutes()).padStart(2, '0');
-        const ss = String(d.getSeconds()).padStart(2, '0');
-        dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
-      }
-
-      btnSave.disabled = true;
-      btnSave.innerText = "กำลังบันทึก...";
-
-      try {
-        await fetch(WORKER_URL, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            rowIndex: parseInt(rowIndex, 10),
-            type: currentType,
-            category,
-            amount,
-            note: category,
-            date: dateStr,
-            sheetName: targetSheetName,
-            dbMode: currentDbMode
-          })
-        });
-        closeModal();
-        await fetchData();
-      } catch (e) {
-        console.error("Save Error:", e);
-        alert("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-      } finally {
-        btnSave.disabled = false;
-        btnSave.innerText = "บันทึก";
-      }
-    }
-
-    async function deleteItem() {
-      if (!confirm("คุณต้องการลบรายการนี้ใช่หรือไม่?")) return;
-      
-      const btnDelete = document.getElementById("btnDelete");
-      const rowIndex = document.getElementById("editRowIndex").value;
-
-      btnDelete.disabled = true;
-      btnDelete.innerText = "กำลังลบ...";
-
-      try {
-        await fetch(WORKER_URL, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            rowIndex: parseInt(rowIndex, 10),
-            sheetName: targetSheetName,
-            dbMode: currentDbMode
-          })
-        });
-        closeModal();
-        await fetchData();
-      } catch (e) {
-        console.error("Delete Error:", e);
-        alert("ลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-      } finally {
-        btnDelete.disabled = false;
-        btnDelete.innerText = "ลบ";
-      }
-    }
-
-    window.onload = main;
-  </script>
 </body>
 </html>
