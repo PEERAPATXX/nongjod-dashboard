@@ -432,13 +432,11 @@
       return parseFloat(cleanVal) || 0;
     }
 
-    // ฟังก์ชันเอนกประสงค์สำหรับแปลงประเภท String ให้เป็น Date Object
     function getItemDateObj(dateStr) {
       if (!dateStr) return new Date();
       try {
         let str = String(dateStr).trim();
 
-        // รองรับกรณีเป็นวันที่สไตล์ภาษาไทย เช่น "13 ส.ค. 2569 02:41"
         for (let i = 0; i < thaiMonthNames.length; i++) {
           if (str.includes(thaiMonthNames[i]) || str.includes(thaiFullMonthNames[i])) {
             let parts = str.split(/\s+/);
@@ -664,7 +662,6 @@
       listEl.innerHTML = html;
     }
 
-    // แปลงวันที่สำหรับใส่ในช่อง input type="datetime-local" ให้เป็นรูปแบบ YYYY-MM-DDTHH:mm
     function parseDateToInput(dateStr) {
       const dateObj = getItemDateObj(dateStr);
       
@@ -724,32 +721,32 @@
         const dd = String(d.getDate()).padStart(2, '0');
         const hh = String(d.getHours()).padStart(2, '0');
         const min = String(d.getMinutes()).padStart(2, '0');
-        const ss = String(d.getSeconds()).padStart(2, '0');
-        dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+        dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}:00`;
       } else {
-        // หากไม่มีค่าใน input ให้ใช้วันเวลาปัจจุบันแทน
         const d = new Date();
         const yyyy = d.getFullYear();
         const mm = String(d.getMonth() + 1).padStart(2, '0');
         const dd = String(d.getDate()).padStart(2, '0');
         const hh = String(d.getHours()).padStart(2, '0');
         const min = String(d.getMinutes()).padStart(2, '0');
-        const ss = String(d.getSeconds()).padStart(2, '0');
-        dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+        dateStr = `${yyyy}-${mm}-${dd} ${hh}:${min}:00`;
       }
 
       btnSave.disabled = true;
       btnSave.innerText = "กำลังบันทึก...";
 
       try {
+        // เปลี่ยนใช้ POST เพื่อเลี่ยงปัญหา CORS
         const response = await fetch(WORKER_URL, {
-          method: "PUT",
+          method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            action: "update",
+            method: "PUT",
             rowIndex: parseInt(rowIndex, 10),
             type: currentType,
-            category,
-            amount,
+            category: category,
+            amount: amount,
             note: category,
             date: dateStr,
             sheetName: targetSheetName,
@@ -757,10 +754,6 @@
             db: currentAccountType === 'sub' ? 'secondary' : 'primary'
           })
         });
-
-        if (!response.ok) {
-          throw new Error("HTTP Status " + response.status);
-        }
 
         closeModal();
         await fetchData();
@@ -783,20 +776,19 @@
       btnDelete.innerText = "กำลังลบ...";
 
       try {
+        // เปลี่ยนใช้ POST เพื่อเลี่ยงปัญหา CORS
         const response = await fetch(WORKER_URL, {
-          method: "DELETE",
+          method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            action: "delete",
+            method: "DELETE",
             rowIndex: parseInt(rowIndex, 10),
             sheetName: targetSheetName,
             accountType: currentAccountType,
             db: currentAccountType === 'sub' ? 'secondary' : 'primary'
           })
         });
-
-        if (!response.ok) {
-          throw new Error("HTTP Status " + response.status);
-        }
 
         closeModal();
         await fetchData();
