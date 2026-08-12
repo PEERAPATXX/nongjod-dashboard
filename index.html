@@ -92,7 +92,7 @@
     }
   </style>
 </head>
-<body class="p-4 text-gray-800 max-w-md mx-auto min-h-screen pb-20">
+<body onload="main()" class="p-4 text-gray-800 max-w-md mx-auto min-h-screen pb-20">
 
   <!-- ฉากหลังเบลอสำหรับ Flatpickr -->
   <div id="calendarBackdrop" onclick="closeCalendarPicker()"></div>
@@ -427,7 +427,10 @@
         
         let urlObj = new URL(WORKER_URL);
         if (targetSheetName) urlObj.searchParams.set("sheet", targetSheetName);
+        
+        // 🛠️ ส่งทั้ง accountType และ db เพื่อให้ Worker เข้าใจและเลือกคอลัมน์ A:E หรือ G:K ได้ถูกต้อง
         urlObj.searchParams.set("accountType", currentAccountType);
+        urlObj.searchParams.set("db", currentAccountType === 'sub' ? 'secondary' : 'primary');
 
         const res = await fetch(urlObj.toString());
         const data = await res.json();
@@ -734,7 +737,8 @@
             note: category,
             date: dateStr,
             sheetName: targetSheetName,
-            accountType: currentAccountType
+            accountType: currentAccountType,
+            db: currentAccountType === 'sub' ? 'secondary' : 'primary'
           })
         });
         closeModal();
@@ -764,21 +768,20 @@
           body: JSON.stringify({
             rowIndex: parseInt(rowIndex, 10),
             sheetName: targetSheetName,
-            accountType: currentAccountType
+            accountType: currentAccountType,
+            db: currentAccountType === 'sub' ? 'secondary' : 'primary'
           })
         });
         closeModal();
         await fetchData();
       } catch (e) {
         console.error("Delete Error:", e);
-        alert("ลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+        alert("ลบรายการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
       } finally {
         btnDelete.disabled = false;
-        btnDelete.innerText = "ลบ";
+        btnDelete.innerText = "🗑️ ลบ";
       }
     }
-
-    window.onload = main;
   </script>
 </body>
 </html>
