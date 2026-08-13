@@ -54,8 +54,8 @@
     <!-- 2. การ์ดสร้างรหัสคำเชิญ (create_invite) -->
     <div class="bg-white/80 backdrop-blur-md p-5 rounded-2xl custom-shadow mb-4 border border-slate-100">
       <p class="text-xs font-normal text-slate-400 tracking-wide uppercase mb-3">Invite Family Member</p>
-      <button onclick="createInvite()" 
-              class="w-full py-3 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] transition duration-200 text-white font-light text-xs tracking-wider uppercase rounded-xl shadow-sm">
+      <button id="btnGenerate" onclick="createInvite()" 
+              class="w-full py-3 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] transition duration-200 text-white font-light text-xs tracking-wider uppercase rounded-xl shadow-sm disabled:opacity-50">
         Generate Invite Code
       </button>
       
@@ -63,7 +63,7 @@
       <div id="inviteResult" class="hidden mt-4 p-4 bg-slate-50/80 border border-slate-200/60 rounded-xl flex justify-between items-center transition-all">
         <div>
           <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Your Code</p>
-          <span id="displayInviteCode" class="font-mono font-medium text-base text-slate-900 tracking-widest">FAMILY-XXXXXX</span>
+          <span id="displayInviteCode" class="font-mono font-medium text-base text-slate-900 tracking-widest">PAIR-XXXXXX</span>
         </div>
         <button onclick="copyInviteCode()" class="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 font-normal text-xs text-slate-700 rounded-lg shadow-2xs transition">
           Copy
@@ -75,10 +75,10 @@
     <div class="bg-white/80 backdrop-blur-md p-5 rounded-2xl custom-shadow mb-4 border border-slate-100">
       <p class="text-xs font-normal text-slate-400 tracking-wide uppercase mb-3">Enter Family's Code</p>
       <div class="flex space-x-2">
-        <input type="text" id="joinCodeInput" placeholder="FAMILY-XXXXXX" 
+        <input type="text" id="joinCodeInput" placeholder="PAIR-XXXXXX" 
                class="flex-1 px-4 py-3 border border-slate-200/80 rounded-xl focus:outline-none focus:border-slate-800 text-sm font-mono tracking-wider uppercase bg-slate-50/50">
-        <button onclick="joinPair()" 
-                class="px-6 py-3 bg-pink-600 hover:bg-pink-700 active:scale-[0.99] transition duration-200 text-white font-light text-xs tracking-wider uppercase rounded-xl shadow-xs">
+        <button id="btnConnect" onclick="joinPair()" 
+                class="px-6 py-3 bg-pink-600 hover:bg-pink-700 active:scale-[0.99] transition duration-200 text-white font-light text-xs tracking-wider uppercase rounded-xl shadow-xs disabled:opacity-50">
           Connect
         </button>
       </div>
@@ -91,7 +91,7 @@
   </div>
 
   <script>
-    // ✅ ใส่ LIFF ID เรียบร้อยแล้ว
+    // ✅ LIFF ID
     const MY_LIFF_ID = "2010951712-Th0lITIH"; 
 
     // ✅ Worker URL
@@ -130,6 +130,10 @@
     async function createInvite() {
       if (!currentUserId) return alert("ไม่พบข้อมูลผู้ใช้ LINE กรุณาลองเปิดผ่านแอป LINE");
 
+      const btn = document.getElementById("btnGenerate");
+      btn.disabled = true;
+      btn.innerText = "GENERATING...";
+
       try {
         const res = await fetch(WORKER_URL, {
           method: "POST",
@@ -149,7 +153,10 @@
           alert("เกิดข้อผิดพลาด: " + (data.message || "สร้างรหัสไม่สำเร็จ"));
         }
       } catch (err) {
-        alert("การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว (กรุณาเช็ก CORS ที่ Cloudflare Worker)");
+        alert("การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว กรุณาลองใหม่อีกครั้ง");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "GENERATE INVITE CODE";
       }
     }
 
@@ -160,6 +167,10 @@
         alert("กรุณากรอกรหัสคำเชิญให้ครบถ้วน");
         return;
       }
+
+      const btn = document.getElementById("btnConnect");
+      btn.disabled = true;
+      btn.innerText = "CONNECTING...";
 
       try {
         const res = await fetch(WORKER_URL, {
@@ -176,12 +187,16 @@
 
         if (data.status === "success") {
           alert("เชื่อมต่อบัญชีครอบครัวสำเร็จแล้ว!");
+          document.getElementById("joinCodeInput").value = "";
           fetchStatus();
         } else {
           alert("เกิดข้อผิดพลาด: " + (data.message || "รหัสไม่ถูกต้อง"));
         }
       } catch (err) {
-        alert("การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว (กรุณาเช็ก CORS ที่ Cloudflare Worker)");
+        alert("การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว กรุณาลองใหม่อีกครั้ง");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "CONNECT";
       }
     }
 
