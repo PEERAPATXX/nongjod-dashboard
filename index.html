@@ -152,8 +152,8 @@
     </div>
   </div>
 
-  <!-- Bottom Navigation Bar -->
-  <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-100 px-6 py-2 flex justify-around items-center z-40 text-center text-[11px] text-gray-400">
+  <!-- Bottom Navigation Bar (เพิ่มปุ่มโหมดจับคู่แล้ว) -->
+  <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-100 px-3 py-2 flex justify-around items-center z-40 text-center text-[11px] text-gray-400">
     <a href="index.html" class="flex flex-col items-center space-y-1 text-pink-600 font-semibold flex-1">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
       <span>สรุป</span>
@@ -161,6 +161,10 @@
     <a href="analysis.html" class="flex flex-col items-center space-y-1 hover:text-gray-600 flex-1">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
       <span>วิเคราะห์</span>
+    </a>
+    <a href="match.html" class="flex flex-col items-center space-y-1 hover:text-gray-600 flex-1">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.684a4.5 4.5 0 00-5.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      <span>โหมดจับคู่</span>
     </a>
     <a href="goal.html" class="flex flex-col items-center space-y-1 hover:text-gray-600 flex-1">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -268,7 +272,6 @@
         btnMain.className = "py-1.5 rounded-lg text-xs font-bold transition-all text-pink-600 hover:bg-pink-100/50";
       }
 
-      // โหลดการกรองวันที่แยกเฉพาะของบัญชีนั้นๆ
       loadSavedDateFilter();
       updateCalendarUI();
 
@@ -761,24 +764,26 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "update",
-            method: "PUT",
-            rowIndex: parseInt(rowIndex, 10),
+            sheet: targetSheetName,
+            accountType: currentAccountType,
+            db: currentAccountType === 'sub' ? 'secondary' : 'primary',
+            rowIndex: rowIndex,
             type: currentType,
             category: category,
             amount: amount,
-            note: category,
-            date: dateStr,
-            sheetName: targetSheetName,
-            accountType: currentAccountType,
-            db: currentAccountType === 'sub' ? 'secondary' : 'primary'
+            date: dateStr
           })
         });
 
-        closeModal();
-        await fetchData();
-      } catch (e) {
-        console.error("Save Error:", e);
-        alert("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง (" + e.message + ")");
+        if (response.ok) {
+          closeModal();
+          await fetchData();
+        } else {
+          alert("เกิดข้อผิดพลาดในการบันทึก");
+        }
+      } catch (err) {
+        console.error("Save error:", err);
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
       } finally {
         btnSave.disabled = false;
         btnSave.innerText = "บันทึก";
@@ -800,21 +805,25 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "delete",
-            rowIndex: parseInt(rowIndex, 10),
-            sheetName: targetSheetName,
+            sheet: targetSheetName,
             accountType: currentAccountType,
-            db: currentAccountType === 'sub' ? 'secondary' : 'primary'
+            db: currentAccountType === 'sub' ? 'secondary' : 'primary',
+            rowIndex: rowIndex
           })
         });
 
-        closeModal();
-        await fetchData();
-      } catch (e) {
-        console.error("Delete Error:", e);
-        alert("ลบรายการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง (" + e.message + ")");
+        if (response.ok) {
+          closeModal();
+          await fetchData();
+        } else {
+          alert("เกิดข้อผิดพลาดในการลบรายการ");
+        }
+      } catch (err) {
+        console.error("Delete error:", err);
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
       } finally {
         btnDelete.disabled = false;
-        btnDelete.innerText = "ลบ";
+        btnDelete.innerText = "🗑️ ลบ";
       }
     }
   </script>
