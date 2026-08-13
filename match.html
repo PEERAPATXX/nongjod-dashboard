@@ -4,8 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Family Account - น้องจด</title>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Font: Prompt -->
   <link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,200;0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+  <!-- LINE LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  
   <style>
     body { 
       font-family: 'Prompt', sans-serif; 
@@ -19,21 +24,21 @@
 </head>
 <body class="p-5 text-slate-800 max-w-md mx-auto min-h-screen pb-16 flex flex-col justify-between">
 
+  <!-- หน้าโหลดระหว่างรอเช็ก LINE Login -->
+  <div id="loadingScreen" class="fixed inset-0 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center z-50">
+    <div class="w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+    <p class="text-xs text-slate-500 tracking-wider">กำลังดึงข้อมูลบัญชี LINE...</p>
+  </div>
+
   <div>
     <!-- Minimalist Header -->
     <div class="my-6 text-center">
       <p class="text-[11px] font-medium tracking-[0.2em] text-pink-500 uppercase mb-1">Family Account</p>
       <h2 class="text-xl font-light text-slate-900 tracking-tight">เชื่อมต่อบัญชีครอบครัว</h2>
+      <p id="userProfileDisplay" class="text-xs text-slate-400 font-light mt-1"></p>
     </div>
 
-    <!-- 1. การ์ดระบุ User ID -->
-    <div class="bg-white/80 backdrop-blur-md p-5 rounded-2xl custom-shadow mb-4 border border-slate-100">
-      <label class="block text-xs font-normal text-slate-400 tracking-wide mb-2 uppercase">Your User ID</label>
-      <input type="text" id="userIdInput" placeholder="ระบุ User ID ของคุณ..." onchange="fetchStatus()" 
-             class="w-full px-4 py-3 border border-slate-200/80 rounded-xl focus:outline-none focus:border-slate-800 text-sm font-light bg-slate-50/50 transition duration-200">
-    </div>
-
-    <!-- 2. การ์ดสถานะการจับคู่ (get_pair_status) -->
+    <!-- 1. การ์ดสถานะการเชื่อมต่อ (get_pair_status) -->
     <div class="bg-white/80 backdrop-blur-md p-5 rounded-2xl custom-shadow mb-4 border border-slate-100">
       <div class="flex justify-between items-center">
         <span class="text-xs font-normal text-slate-400 tracking-wide uppercase">Connection Status</span>
@@ -46,7 +51,7 @@
       </div>
     </div>
 
-    <!-- 3. การ์ดสร้างรหัสคำเชิญ (create_invite) -->
+    <!-- 2. การ์ดสร้างรหัสคำเชิญ (create_invite) -->
     <div class="bg-white/80 backdrop-blur-md p-5 rounded-2xl custom-shadow mb-4 border border-slate-100">
       <p class="text-xs font-normal text-slate-400 tracking-wide uppercase mb-3">Invite Family Member</p>
       <button onclick="createInvite()" 
@@ -66,7 +71,7 @@
       </div>
     </div>
 
-    <!-- 4. การ์ดป้อนรหัสเพื่อจับคู่ (join_pair) -->
+    <!-- 3. การ์ดป้อนรหัสเพื่อจับคู่ (join_pair) -->
     <div class="bg-white/80 backdrop-blur-md p-5 rounded-2xl custom-shadow mb-4 border border-slate-100">
       <p class="text-xs font-normal text-slate-400 tracking-wide uppercase mb-3">Enter Family's Code</p>
       <div class="flex space-x-2">
@@ -86,28 +91,56 @@
   </div>
 
   <script>
-    // ⚠️ เปลี่ยน Worker URL ให้ตรงกับระบบของมึง
+    // ⚠️ 1. ใส่ LIFF ID ของมึงตรงนี้ (เช่น "1234567890-AbCdEfGh")
+    const MY_LIFF_ID = "YOUR_LIFF_ID_HERE"; 
+
+    // ⚠️ 2. ใส่ Worker URL ของมึงตรงนี้
     const WORKER_URL = "https://nongjod.hay-peerapattx-co-th.workers.dev/";
 
-    function getUserId() {
-      const uid = document.getElementById("userIdInput").value.trim();
-      if (!uid) {
-        alert("กรุณาระบุ User ID ของคุณก่อนทำรายการ");
-        return null;
+    let currentUserId = null;
+    let currentUserName = null;
+
+    // เริ่มต้นเชื่อมต่อกับ LIFF อัตโนมัติเมื่อเปิดหน้า
+    async function initLIFF() {
+      try {
+        await liff.init({ liffId: MY_LIFF_ID });
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          currentUserId = profile.userId;
+          currentUserName = profile.displayName;
+          
+          document.getElementById("userProfileDisplay").innerText = `สวัสดีคุณ ${currentUserName}`;
+          document.getElementById("loadingScreen").classList.add("hidden");
+          
+          // ดึงสถานะปัจจุบันมาแสดงทันที
+          fetchStatus();
+        } else {
+          liff.login();
+        }
+      } catch (err) {
+        console.error("LIFF Init Error:", err);
+        // กรณีเปิดทดสอบบน Browser ทั่วไป (Fallback)
+        document.getElementById("loadingScreen").classList.add("hidden");
+        document.getElementById("userProfileDisplay").innerText = "⚠️ กรุณาเปิดผ่าน LINE";
       }
-      return uid;
     }
+
+    // เรียกทำงานทันทีที่โหลดหน้า
+    window.onload = initLIFF;
 
     // 1. สร้างรหัสคำเชิญ (create_invite)
     async function createInvite() {
-      const userId = getUserId();
-      if (!userId) return;
+      if (!currentUserId) return alert("ไม่พบข้อมูลผู้ใช้ LINE");
 
       try {
         const res = await fetch(WORKER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "create_invite", userId })
+          body: JSON.stringify({ 
+            action: "create_invite", 
+            userId: currentUserId,
+            userName: currentUserName 
+          })
         });
         const data = await res.json();
 
@@ -124,9 +157,8 @@
 
     // 2. ป้อนรหัสเพื่อจับคู่ (join_pair)
     async function joinPair() {
-      const userId = getUserId();
       const inviteCode = document.getElementById("joinCodeInput").value.trim();
-      if (!userId || !inviteCode) {
+      if (!currentUserId || !inviteCode) {
         alert("กรุณากรอกรหัสคำเชิญให้ครบถ้วน");
         return;
       }
@@ -135,12 +167,17 @@
         const res = await fetch(WORKER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "join_pair", userId, inviteCode })
+          body: JSON.stringify({ 
+            action: "join_pair", 
+            userId: currentUserId,
+            userName: currentUserName,
+            inviteCode: inviteCode 
+          })
         });
         const data = await res.json();
 
         if (data.status === "success") {
-          alert("เชื่อมต่อบัญชีครอบครัวสำเร็จแล้ว");
+          alert("เชื่อมต่อบัญชีครอบครัวสำเร็จแล้ว!");
           fetchStatus();
         } else {
           alert("เกิดข้อผิดพลาด: " + (data.message || "รหัสไม่ถูกต้อง"));
@@ -152,14 +189,13 @@
 
     // 3. ดึงสถานะการจับคู่ (get_pair_status)
     async function fetchStatus() {
-      const userId = getUserId();
-      if (!userId) return;
+      if (!currentUserId) return;
 
       try {
         const res = await fetch(WORKER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "get_pair_status", userId })
+          body: JSON.stringify({ action: "get_pair_status", userId: currentUserId })
         });
         const data = await res.json();
 
@@ -170,11 +206,7 @@
           if (data.partnerInfo) {
             badge.className = "text-[11px] font-medium px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 tracking-wide border border-emerald-100";
             badge.innerText = "Connected";
-            nameText.innerHTML = `เชื่อมต่อกับ <span class="font-normal text-slate-900">${data.partnerInfo.userName || 'สมาชิกครอบครัวของคุณ'}</span>`;
-          } else if (data.isPartnerPrivate) {
-            badge.className = "text-[11px] font-medium px-3 py-1 rounded-full bg-slate-100 text-slate-600 tracking-wide";
-            badge.innerText = "Connected (Private)";
-            nameText.innerText = "สมาชิกครอบครัวของคุณซ่อนข้อมูลส่วนตัวอยู่";
+            nameText.innerHTML = `เชื่อมต่อกับ <span class="font-normal text-slate-900">${data.partnerInfo.userName || 'สมาชิกครอบครัว'}</span>`;
           } else {
             badge.className = "text-[11px] font-medium px-3 py-1 rounded-full bg-slate-100 text-slate-400 tracking-wide";
             badge.innerText = "Not Connected";
