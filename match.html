@@ -91,10 +91,10 @@
   </div>
 
   <script>
-    // ⚠️ 1. ใส่ LIFF ID ของมึงตรงนี้ (เช่น "1234567890-AbCdEfGh")
-    const MY_LIFF_ID = "YOUR_LIFF_ID_HERE"; 
+    // ✅ ใส่ LIFF ID เรียบร้อยแล้ว
+    const MY_LIFF_ID = "2010951712-Th0lITIH"; 
 
-    // ⚠️ 2. ใส่ Worker URL ของมึงตรงนี้
+    // ✅ Worker URL
     const WORKER_URL = "https://nongjod.hay-peerapattx-co-th.workers.dev/";
 
     let currentUserId = null;
@@ -119,18 +119,16 @@
         }
       } catch (err) {
         console.error("LIFF Init Error:", err);
-        // กรณีเปิดทดสอบบน Browser ทั่วไป (Fallback)
         document.getElementById("loadingScreen").classList.add("hidden");
-        document.getElementById("userProfileDisplay").innerText = "⚠️ กรุณาเปิดผ่าน LINE";
+        document.getElementById("userProfileDisplay").innerText = "⚠️ ไม่สามารถเชื่อมต่อกับ LINE ได้";
       }
     }
 
-    // เรียกทำงานทันทีที่โหลดหน้า
     window.onload = initLIFF;
 
     // 1. สร้างรหัสคำเชิญ (create_invite)
     async function createInvite() {
-      if (!currentUserId) return alert("ไม่พบข้อมูลผู้ใช้ LINE");
+      if (!currentUserId) return alert("ไม่พบข้อมูลผู้ใช้ LINE กรุณาลองเปิดผ่านแอป LINE");
 
       try {
         const res = await fetch(WORKER_URL, {
@@ -151,7 +149,7 @@
           alert("เกิดข้อผิดพลาด: " + (data.message || "สร้างรหัสไม่สำเร็จ"));
         }
       } catch (err) {
-        alert("การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว");
+        alert("การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว (กรุณาเช็ก CORS ที่ Cloudflare Worker)");
       }
     }
 
@@ -183,7 +181,7 @@
           alert("เกิดข้อผิดพลาด: " + (data.message || "รหัสไม่ถูกต้อง"));
         }
       } catch (err) {
-        alert("การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว");
+        alert("การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว (กรุณาเช็ก CORS ที่ Cloudflare Worker)");
       }
     }
 
