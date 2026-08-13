@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Family Account - น้องจด</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,200;0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+  <style>
+    body { 
+      font-family: 'Prompt', sans-serif; 
+      background-color: #F8FAF9;
+      color: #1E293B;
+    }
+    .custom-shadow {
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 4px 12px -2px rgba(0, 0, 0, 0.02);
+    }
+  </style>
+</head>
+<body class="p-5 text-slate-800 max-w-md mx-auto min-h-screen pb-16 flex flex-col justify-between">
+
+  <div>
+    <!-- Minimalist Header -->
+    <div class="my-6 text-center">
+      <p class="text-[11px] font-medium tracking-[0.2em] text-pink-500 uppercase mb-1">Family Account</p>
+      <h2 class="text-xl font-light text-slate-900 tracking-tight">เชื่อมต่อบัญชีครอบครัว</h2>
+    </div>
+
+    <!-- 1. การ์ดระบุ User ID -->
+    <div class="bg-white/80 backdrop-blur-md p-5 rounded-2xl custom-shadow mb-4 border border-slate-100">
+      <label class="block text-xs font-normal text-slate-400 tracking-wide mb-2 uppercase">Your User ID</label>
+      <input type="text" id="userIdInput" placeholder="ระบุ User ID ของคุณ..." onchange="fetchStatus()" 
+             class="w-full px-4 py-3 border border-slate-200/80 rounded-xl focus:outline-none focus:border-slate-800 text-sm font-light bg-slate-50/50 transition duration-200">
+    </div>
+
+    <!-- 2. การ์ดสถานะการจับคู่ (get_pair_status) -->
+    <div class="bg-white/80 backdrop-blur-md p-5 rounded-2xl custom-shadow mb-4 border border-slate-100">
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-normal text-slate-400 tracking-wide uppercase">Connection Status</span>
+        <span id="pairBadge" class="text-[11px] font-medium px-3 py-1 rounded-full bg-slate-100 text-slate-400 tracking-wide">
+          Not Connected
+        </span>
+      </div>
+      <div id="partnerNameText" class="text-sm font-light text-slate-700 mt-3 pt-3 border-t border-slate-50">
+        —
+      </div>
+    </div>
+
+    <!-- 3. การ์ดสร้างรหัสคำเชิญ (create_invite) -->
+    <div class="bg-white/80 backdrop-blur-md p-5 rounded-2xl custom-shadow mb-4 border border-slate-100">
+      <p class="text-xs font-normal text-slate-400 tracking-wide uppercase mb-3">Invite Family Member</p>
+      <button onclick="createInvite()" 
+              class="w-full py-3 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] transition duration-200 text-white font-light text-xs tracking-wider uppercase rounded-xl shadow-sm">
+        Generate Invite Code
+      </button>
+      
+      <!-- กล่องแสดงรหัสหลังสร้างสำเร็จ -->
+      <div id="inviteResult" class="hidden mt-4 p-4 bg-slate-50/80 border border-slate-200/60 rounded-xl flex justify-between items-center transition-all">
+        <div>
+          <p class="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Your Code</p>
+          <span id="displayInviteCode" class="font-mono font-medium text-base text-slate-900 tracking-widest">FAMILY-XXXXXX</span>
+        </div>
+        <button onclick="copyInviteCode()" class="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 font-normal text-xs text-slate-700 rounded-lg shadow-2xs transition">
+          Copy
+        </button>
+      </div>
+    </div>
+
+    <!-- 4. การ์ดป้อนรหัสเพื่อจับคู่ (join_pair) -->
+    <div class="bg-white/80 backdrop-blur-md p-5 rounded-2xl custom-shadow mb-4 border border-slate-100">
+      <p class="text-xs font-normal text-slate-400 tracking-wide uppercase mb-3">Enter Family's Code</p>
+      <div class="flex space-x-2">
+        <input type="text" id="joinCodeInput" placeholder="FAMILY-XXXXXX" 
+               class="flex-1 px-4 py-3 border border-slate-200/80 rounded-xl focus:outline-none focus:border-slate-800 text-sm font-mono tracking-wider uppercase bg-slate-50/50">
+        <button onclick="joinPair()" 
+                class="px-6 py-3 bg-pink-600 hover:bg-pink-700 active:scale-[0.99] transition duration-200 text-white font-light text-xs tracking-wider uppercase rounded-xl shadow-xs">
+          Connect
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Tagline Minimalist -->
+  <div class="text-center py-2">
+    <p class="text-[10px] font-extralight text-slate-300 tracking-[0.3em] uppercase">NongJod Family Account</p>
+  </div>
+
+  <script>
+    // ⚠️ เปลี่ยน Worker URL ให้ตรงกับระบบของมึง
+    const WORKER_URL = "https://nongjod.hay-peerapattx-co-th.workers.dev/";
+
+    function getUserId() {
+      const uid = document.getElementById("userIdInput").value.trim();
+      if (!uid) {
+        alert("กรุณาระบุ User ID ของคุณก่อนทำรายการ");
+        return null;
+      }
+      return uid;
+    }
+
+    // 1. สร้างรหัสคำเชิญ (create_invite)
+    async function createInvite() {
+      const userId = getUserId();
+      if (!userId) return;
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "create_invite", userId })
+        });
+        const data = await res.json();
+
+        if (data.status === "success" || data.inviteCode) {
+          document.getElementById("displayInviteCode").innerText = data.inviteCode;
+          document.getElementById("inviteResult").classList.remove("hidden");
+        } else {
+          alert("เกิดข้อผิดพลาด: " + (data.message || "สร้างรหัสไม่สำเร็จ"));
+        }
+      } catch (err) {
+        alert("การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว");
+      }
+    }
+
+    // 2. ป้อนรหัสเพื่อจับคู่ (join_pair)
+    async function joinPair() {
+      const userId = getUserId();
+      const inviteCode = document.getElementById("joinCodeInput").value.trim();
+      if (!userId || !inviteCode) {
+        alert("กรุณากรอกรหัสคำเชิญให้ครบถ้วน");
+        return;
+      }
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "join_pair", userId, inviteCode })
+        });
+        const data = await res.json();
+
+        if (data.status === "success") {
+          alert("เชื่อมต่อบัญชีครอบครัวสำเร็จแล้ว");
+          fetchStatus();
+        } else {
+          alert("เกิดข้อผิดพลาด: " + (data.message || "รหัสไม่ถูกต้อง"));
+        }
+      } catch (err) {
+        alert("การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว");
+      }
+    }
+
+    // 3. ดึงสถานะการจับคู่ (get_pair_status)
+    async function fetchStatus() {
+      const userId = getUserId();
+      if (!userId) return;
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "get_pair_status", userId })
+        });
+        const data = await res.json();
+
+        if (data.status === "success") {
+          const badge = document.getElementById("pairBadge");
+          const nameText = document.getElementById("partnerNameText");
+
+          if (data.partnerInfo) {
+            badge.className = "text-[11px] font-medium px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 tracking-wide border border-emerald-100";
+            badge.innerText = "Connected";
+            nameText.innerHTML = `เชื่อมต่อกับ <span class="font-normal text-slate-900">${data.partnerInfo.userName || 'สมาชิกครอบครัวของคุณ'}</span>`;
+          } else if (data.isPartnerPrivate) {
+            badge.className = "text-[11px] font-medium px-3 py-1 rounded-full bg-slate-100 text-slate-600 tracking-wide";
+            badge.innerText = "Connected (Private)";
+            nameText.innerText = "สมาชิกครอบครัวของคุณซ่อนข้อมูลส่วนตัวอยู่";
+          } else {
+            badge.className = "text-[11px] font-medium px-3 py-1 rounded-full bg-slate-100 text-slate-400 tracking-wide";
+            badge.innerText = "Not Connected";
+            nameText.innerText = "ยังไม่มีการเชื่อมต่อกับสมาชิกครอบครัว";
+          }
+        }
+      } catch (err) {
+        console.error("Fetch status error:", err);
+      }
+    }
+
+    function copyInviteCode() {
+      const code = document.getElementById("displayInviteCode").innerText;
+      navigator.clipboard.writeText(code);
+      alert("คัดลอกรหัส " + code + " เรียบร้อยแล้ว");
+    }
+  </script>
+</body>
+</html>
