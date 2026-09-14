@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ตั้งค่างบประมาณ - น้องจด</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Prompt', sans-serif; background-color: #F8F9FA; }
+  </style>
+</head>
+<body class="p-4 text-gray-800 max-w-md mx-auto min-h-screen pb-10">
+
+  <!-- Header Profile (ดึงจาก LINE LIFF) -->
+  <div class="bg-white p-4 rounded-2xl shadow-sm mb-4 border border-pink-100 flex items-center space-x-3">
+    <img id="userPicture" class="w-12 h-12 rounded-full border-2 border-pink-400 bg-pink-50 object-cover" src="https://via.placeholder.com/150" alt="Profile">
+    <div class="overflow-hidden">
+      <h2 id="userName" class="font-bold text-lg leading-tight text-gray-800 truncate">กำลังเชื่อมต่อ LINE...</h2>
+      <p id="userIdDisplay" class="text-[10px] text-gray-400 font-mono truncate">ID: Loading...</p>
+    </div>
+  </div>
+
+  <!-- Form ตั้งค่างบประมาณ -->
+  <div class="bg-white p-5 rounded-2xl shadow-sm border border-pink-100 space-y-4">
+    <h3 class="font-bold text-lg text-purple-900 border-b border-pink-50 pb-2">⚙️ ตั้งค่างบประมาณอัตโนมัติ</h3>
+
+    <form id="configForm" class="space-y-4">
+      <input type="hidden" id="lineUserId">
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">รูปแบบการรับเงิน</label>
+        <select id="incomeType" class="w-full p-3 border border-pink-100 rounded-xl focus:outline-none focus:border-pink-400 text-sm bg-white">
+          <option value="weekly">รายสัปดาห์ (Weekly)</option>
+          <option value="daily">รายวัน (Daily)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">จำนวนเงินรับเข้าปกติ (บาท)</label>
+        <input type="number" id="incomeAmount" placeholder="เช่น 1980 หรือ 330" class="w-full p-3 border border-pink-100 rounded-xl focus:outline-none focus:border-pink-400 font-bold text-pink-600" required>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-2">รายการหักเงินคงที่อัตโนมัติ</label>
+        <div id="deductionsList" class="space-y-2 mb-2">
+          <!-- JS จะสร้างแถวให้อัตโนมัติ -->
+        </div>
+        <button type="button" id="btnAddDeduction" class="w-full py-2 bg-pink-50 text-pink-600 rounded-xl text-xs font-semibold border border-pink-100 hover:bg-pink-100 transition">+ เพิ่มรายการหักเงิน</button>
+      </div>
+
+      <button type="submit" id="btnSave" class="w-full py-3.5 bg-[#E6007E] hover:bg-pink-700 text-white font-bold rounded-xl shadow-md transition text-sm disabled:opacity-50">
+        บันทึกการตั้งค่า ✨
+      </button>
+    </form>
+  </div>
+
+  <script>
+    const WORKER_URL = "https://nongjod.hay-peerapattx-co-th.workers.dev/";
+    const LIFF_ID = "2010951712-eMXtE6uR";
+
+    document.addEventListener("DOMContentLoaded", function() {
+      initApp();
+      
+      document.getElementById('btnAddDeduction').addEventListener('click', function() {
+        addDeductionRow();
+      });
+
+      document.getElementById('configForm').addEventListener('submit', handleFormSubmit);
+    });
+
+    // 🌟 แก้ไขท่อน initApp ป้องกัน 400 Bad Request เรียบร้อยแล้ว
+    async function initApp() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          setupUserProfile(profile.userId, profile.displayName, profile.pictureUrl);
+        } else {
+          liff.login();
+        }
+      } catch (err) {
+        console.warn("LIFF Init Failed or Dev Mode:", err);
+        setupUserProfile("U_TEST_USER_DEV", "โหมดทดสอบ (Dev Mode)", null);
+      } finally {
+        renderDefaultDeductions();
+      }
+    }
+
+    function setupUserProfile(userId, name, pictureUrl) {
+      document.getElementById("lineUserId").value = userId;
+      document.getElementById("userName").innerText = name || "ผู้ใช้งานน้องจด";
+      document.getElementById("userIdDisplay").innerText = `ID: ${userId}`;
+      if (pictureUrl) {
+        document.getElementById("userPicture").src = pictureUrl;
+      }
+    }
+
+    function renderDefaultDeductions() {
+      const container = document.getElementById('deductionsList');
+      container.innerHTML = '';
+      addDeductionRow("ค่าน้ำมัน (Auto)", 600);
+      addDeductionRow("ออม Dime (Auto)", 125);
+    }
+
+    function addDeductionRow(name = '', amount = '') {
+      const container = document.getElementById('deductionsList');
+      const div = document.createElement('div');
+      div.className = 'flex items-center space-x-2 deduction-item';
+      div.innerHTML = `
+        <input type="text" class="ded-name flex-[2] p-2.5 border border-pink-100 rounded-xl text-xs focus:outline-none focus:border-pink-400" placeholder="รายการ เช่น ค่าน้ำมัน" value="${name}" required>
+        <input type="number" class="ded-amount flex-1 p-2.5 border border-pink-100 rounded-xl text-xs font-bold text-pink-600 focus:outline-none focus:border-pink-400" placeholder="บาท" value="${amount}" required>
+        <button type="button" onclick="this.parentElement.remove()" class="w-8 h-8 bg-red-50 text-red-500 rounded-xl flex items-center justify-center font-bold text-sm hover:bg-red-100">✕</button>
+      `;
+      container.appendChild(div);
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      
+      const btnSave = document.getElementById('btnSave');
+      btnSave.disabled = true;
+      btnSave.innerText = "กำลังบันทึกข้อมูล...";
+
+      const userId = document.getElementById('lineUserId').value;
+      const incomeType = document.getElementById('incomeType').value;
+      const incomeAmount = parseFloat(document.getElementById('incomeAmount').value) || 0;
+
+      const dedNames = document.querySelectorAll('.ded-name');
+      const dedAmounts = document.querySelectorAll('.ded-amount');
+      const fixedDeductions = [];
+
+      dedNames.forEach((el, index) => {
+        const name = el.value.trim();
+        const amount = parseFloat(dedAmounts[index].value) || 0;
+        if (name && amount > 0) {
+          fixedDeductions.push({ name, amount });
+        }
+      });
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "save_config",
+            userId: userId,
+            incomeType: incomeType,
+            incomeAmount: incomeAmount,
+            fixedDeductions: fixedDeductions
+          })
+        });
+
+        const result = await res.json();
+        if (res.ok && result.status === "success") {
+          alert("🎉 บันทึกการตั้งค่าเรียบร้อยแล้ว!");
+          if (liff.isInClient()) {
+            liff.closeWindow();
+          }
+        } else {
+          alert("⚠️ เกิดข้อผิดพลาด: " + (result.message || "บันทึกข้อมูลไม่สำเร็จ"));
+        }
+      } catch (err) {
+        console.error("Save Config Error:", err);
+        alert("⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อกับ Workers");
+      } finally {
+        btnSave.disabled = false;
+        btnSave.innerText = "บันทึกการตั้งค่า ✨";
+      }
+    }
+  </script>
+</body>
+</html>
