@@ -45,7 +45,7 @@
       <div>
         <label class="block text-xs font-semibold text-gray-600 mb-2">รายการหักเงินคงที่อัตโนมัติ</label>
         <div id="deductionsList" class="space-y-2 mb-2">
-          <!-- JS จะสร้างแถวให้อัตโนมัติ -->
+          <!-- แถวรายการหักเงินสร้างผ่าน JS -->
         </div>
         <button type="button" id="btnAddDeduction" class="w-full py-2 bg-pink-50 text-pink-600 rounded-xl text-xs font-semibold border border-pink-100 hover:bg-pink-100 transition">+ เพิ่มรายการหักเงิน</button>
       </div>
@@ -70,7 +70,6 @@
       document.getElementById('configForm').addEventListener('submit', handleFormSubmit);
     });
 
-    // 🌟 แก้ไขท่อน initApp ป้องกัน 400 Bad Request เรียบร้อยแล้ว
     async function initApp() {
       try {
         await liff.init({ liffId: LIFF_ID });
@@ -78,13 +77,14 @@
         if (liff.isLoggedIn()) {
           const profile = await liff.getProfile();
           setupUserProfile(profile.userId, profile.displayName, profile.pictureUrl);
+          // 🌟 ดึงข้อมูล Config เดิมที่เคยบันทึกไว้จากระบบ
+          await loadExistingUserConfig(profile.userId);
         } else {
           liff.login();
         }
       } catch (err) {
         console.warn("LIFF Init Failed or Dev Mode:", err);
         setupUserProfile("U_TEST_USER_DEV", "โหมดทดสอบ (Dev Mode)", null);
-      } finally {
         renderDefaultDeductions();
       }
     }
@@ -95,6 +95,35 @@
       document.getElementById("userIdDisplay").innerText = `ID: ${userId}`;
       if (pictureUrl) {
         document.getElementById("userPicture").src = pictureUrl;
+      }
+    }
+
+    // 🌟 ฟังก์ชันโหลดข้อมูล Config เก่าขึ้นฟอร์ม
+    async function loadExistingUserConfig(userId) {
+      try {
+        const res = await fetch(`${WORKER_URL}?action=get_config&userId=${userId}`);
+        const data = await res.json();
+        
+        if (data && data.config) {
+          document.getElementById('incomeType').value = data.config.incomeType || "weekly";
+          document.getElementById('incomeAmount').value = data.config.incomeAmount || "";
+          
+          const container = document.getElementById('deductionsList');
+          container.innerHTML = '';
+          
+          if (data.config.fixedDeductions && data.config.fixedDeductions.length > 0) {
+            data.config.fixedDeductions.forEach(item => {
+              addDeductionRow(item.name, item.amount);
+            });
+          } else {
+            renderDefaultDeductions();
+          }
+        } else {
+          renderDefaultDeductions();
+        }
+      } catch (e) {
+        console.error("Load Config Failed:", e);
+        renderDefaultDeductions();
       }
     }
 
